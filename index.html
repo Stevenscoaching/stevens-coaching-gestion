@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<!-- v20260329213728 -->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stevens Coaching">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2D5A3D">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232D5A3D'/><text y='.9em' font-size='70' x='50%' text-anchor='middle' fill='white'>SC</text></svg>">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stevens Coaching — Gestion</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #F7F6F3;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --border-med: rgba(0,0,0,0.14);
+  --text: #1A1A18;
+  --text-2: #6B6B65;
+  --text-3: #9E9E96;
+  --accent: #2D5A3D;
+  --accent-light: #EBF2ED;
+  --warn: #8A5C00;
+  --warn-light: #FFF4D9;
+  --danger: #8A2222;
+  --danger-light: #FDEAEA;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+/* HEADER */
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 52px; position: sticky; top: 0; z-index: 50; }
+.header-logo { font-size: 15px; font-weight: 500; letter-spacing: -0.3px; }
+.header-logo span { color: var(--accent); }
+.sync-status { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 5px; }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #4CAF50; }
+.sync-dot.syncing { background: #FF9800; animation: pulse 1s infinite; }
+.sync-dot.error { background: #f44336; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* TABS */
+.tabs { display: flex; gap: 2px; padding: 0 16px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { padding: 12px 14px; font-size: 13px; font-weight: 400; color: var(--text-2); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s; }
+.tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--accent); }
+/* CONTENT */
+.content { padding: 16px; max-width: 900px; margin: 0 auto; }
+.section { display: none; }
+.section.active { display: block; }
+/* METRICS */
+.metrics { display: grid; gap: 10px; margin-bottom: 16px; }
+.metrics-3 { grid-template-columns: repeat(3, 1fr); }
+.metrics-4 { grid-template-columns: repeat(4, 1fr); }
+.metrics-2 { grid-template-columns: repeat(2, 1fr); }
+@media(max-width:600px) { .metrics-3,.metrics-4,.metrics-2 { grid-template-columns: repeat(2,1fr); } }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; box-shadow: var(--shadow); }
+.metric-label { font-size: 11px; color: var(--text-3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+.metric-value { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.5px; }
+.metric-sub { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+/* CARD */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.card-title { font-size: 13px; font-weight: 500; color: var(--text); }
+/* TABLE */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 6px 10px; font-size: 11px; color: var(--text-3); font-weight: 500; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+/* BADGE */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+.b-ok { background: var(--accent-light); color: var(--accent); }
+.b-warn { background: var(--warn-light); color: var(--warn); }
+.b-off { background: var(--danger-light); color: var(--danger); }
+.b-gray { background: var(--bg); color: var(--text-2); border: 1px solid var(--border); }
+/* BTNS */
+.btn { padding: 7px 13px; font-size: 12px; font-family: inherit; border: 1px solid var(--border-med); border-radius: var(--radius); background: var(--surface); cursor: pointer; color: var(--text); transition: background 0.1s; white-space: nowrap; }
+.btn:hover { background: var(--bg); }
+.btn-p { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-p:hover { background: #244d34; }
+.btn-sm { padding: 3px 9px; font-size: 11px; font-family: inherit; border: 1px solid var(--border-med); border-radius: 6px; background: none; cursor: pointer; color: var(--text); }
+.btn-sm:hover { background: var(--bg); }
+.btn-sm.p { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* MONTH BAR */
+.mbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.mtab { padding: 4px 11px; font-size: 12px; font-family: inherit; border: 1px solid var(--border-med); border-radius: 99px; cursor: pointer; color: var(--text-2); background: none; white-space: nowrap; }
+.mtab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-dashed { border-style: dashed !important; }
+/* INPUTS */
+.inp-num { width: 36px; text-align: center; padding: 3px 2px; font-size: 12px; font-family: 'DM Mono', monospace; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); }
+/* PROGRESS */
+.pbar { height: 5px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 5px; border: 1px solid var(--border); }
+.pbar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+/* MODAL */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 20px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+.modal-title { font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+.form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.form-row label { font-size: 12px; color: var(--text-2); min-width: 130px; }
+.form-row input, .form-row select { flex: 1; font-size: 13px; font-family: inherit; padding: 6px 10px; border: 1px solid var(--border-med); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+/* RELECTURE DEPENSES */
+.dep-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.dep-row:last-child { border-bottom: none; }
+.dep-label { flex: 1; font-size: 12px; }
+.dep-inp { width: 80px; text-align: right; padding: 4px 8px; font-size: 12px; font-family: 'DM Mono', monospace; border: 1px solid var(--border-med); border-radius: 6px; background: var(--surface); color: var(--text); }
+.dep-inp.changed { border-color: var(--accent); background: var(--accent-light); }
+.dep-total { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; font-weight: 500; }
+/* INFO BOX */
+.infobox { background: var(--bg); border-radius: var(--radius); padding: 10px 13px; font-size: 12px; color: var(--text-2); margin-bottom: 12px; line-height: 1.6; }
+/* INVOICE */
+.inv-block { background: var(--bg); border-radius: var(--radius); padding: 14px; font-size: 13px; margin-bottom: 12px; line-height: 1.9; }
+.inv-row { display: flex; justify-content: space-between; }
+.inv-total { font-weight: 500; font-size: 14px; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; }
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text-3); font-size: 13px; gap: 10px; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 24px; color: var(--text-3); font-size: 13px; }
+/* TTABS */
+.ttab { padding: 4px 11px; font-size: 12px; font-family: inherit; border: 1px solid var(--border-med); border-radius: 99px; cursor: pointer; color: var(--text-2); background: none; }
+.ttab.active { background: var(--text); color: #fff; border-color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">Stevens <span>Coaching</span></div>
+  <div class="sync-status">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-label">Connecté</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('packs')">Packs</button>
+  <button class="tab" onclick="switchTab('seances')">Séances</button>
+  <button class="tab" onclick="switchTab('online')">Online</button>
+  <button class="tab" onclick="switchTab('compta')">Comptabilité</button>
+  <button class="tab" onclick="switchTab('ca')">CA Mensuel</button>
+  <button class="tab" onclick="switchTab('factures')">Facturation</button>
+</div>
+
+<div class="content">
+
+<!-- PACKS -->
+<div id="sec-packs" class="section active">
+  <div class="metrics metrics-4">
+    <div class="metric"><div class="metric-label">Clients</div><div class="metric-value" id="pk-nb">—</div></div>
+    <div class="metric"><div class="metric-label">Séances vendues</div><div class="metric-value" id="pk-vendues">—</div></div>
+    <div class="metric"><div class="metric-label">Séances faites</div><div class="metric-value" id="pk-faites">—</div></div>
+    <div class="metric"><div class="metric-label">À renouveler</div><div class="metric-value" id="pk-alert" style="color:var(--danger)">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Packs actifs</span>
+      <button class="btn btn-p" onclick="openModal('modal-add-pack')">+ Client</button>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:16%">Client</th>
+        <th style="width:7%">Pack</th>
+        <th style="width:9%">Cumulé</th>
+        <th style="width:10%">Faites</th>
+        <th style="width:9%">Restantes</th>
+        <th style="width:9%">Prix CHF</th>
+        <th style="width:14%">Progression</th>
+        <th style="width:10%">Statut</th>
+        <th style="width:16%">Action</th>
+      </tr></thead>
+      <tbody id="packs-tbody"><tr><td colspan="9"><div class="loading"><div class="spinner"></div>Chargement…</div></td></tr></tbody>
+    </table>
+    </div>
+  </div>
+  <div class="card" id="hist-card" style="display:none">
+    <div class="card-head"><span class="card-title" id="hist-title">Historique</span><button class="btn-sm" onclick="document.getElementById('hist-card').style.display='none'">Fermer</button></div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<!-- SEANCES -->
+<div id="sec-seances" class="section">
+  <div class="metrics metrics-3">
+    <div class="metric"><div class="metric-label">Clients</div><div class="metric-value" id="nb-pres">—</div></div>
+    <div class="metric"><div class="metric-label">CA ce mois</div><div class="metric-value" id="ca-pres">—</div></div>
+    <div class="metric"><div class="metric-label">Séances ce mois</div><div class="metric-value" id="nb-seances">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Coaching présentiel</span>
+    </div>
+    <!-- Sélecteur client -->
+    <div class="mbar" id="client-bar" style="padding:8px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px;display:flex"></div>
+    <!-- Vue séances du client sélectionné -->
+    <div id="seances-client-view" style="padding:0">
+      <div id="seances-client-empty" style="padding:24px;text-align:center;color:var(--text-3);font-size:13px">Sélectionne un client pour voir ses séances</div>
+      <div id="seances-client-content" style="display:none">
+        <!-- Résumé client -->
+        <div id="seances-client-header" style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div>
+            <div id="seances-cumul" style="font-size:16px;font-weight:500"></div>
+            <div id="seances-pack-pos" style="font-size:12px;color:var(--text-3);margin-top:2px"></div>
+          </div>
+          <div id="seances-pbar-wrap" style="flex:1;min-width:120px">
+            <div style="height:6px;background:var(--border);border-radius:3px">
+              <div id="seances-pbar-fill" style="height:6px;border-radius:3px;transition:width 0.3s"></div>
+            </div>
+          </div>
+          <button class="btn btn-p" onclick="openModalAddSeance()">+ Séance</button>
+        </div>
+        <!-- Tableau séances -->
+        <div id="seances-recap" style="display:none"></div>
+        <div class="tbl-wrap">
+          <table id="seances-v2-table">
+            <thead><tr>
+              <th style="width:12%">Date</th>
+              <th style="width:10%">N° pack</th>
+              <th style="width:10%">Cumulé</th>
+              <th style="width:10%">Prix CHF</th>
+              <th style="width:28%">Commentaire</th>
+              <th style="width:6%"></th>
+            </tr></thead>
+            <tbody id="seances-v2-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ONLINE -->
+<div id="sec-online" class="section">
+  <div class="metrics metrics-3">
+    <div class="metric"><div class="metric-label">Clients actifs</div><div class="metric-value" id="nb-online">—</div></div>
+    <div class="metric"><div class="metric-label">CA online / mois</div><div class="metric-value" id="ca-online">—</div></div>
+    <div class="metric"><div class="metric-label">En attente</div><div class="metric-value" id="ca-attente" style="color:var(--warn)">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Coaching online</span>
+      <button class="btn btn-p" onclick="openModal('modal-online')">+ Client</button>
+    </div>
+    <div class="mbar" id="online-month-bar"></div>
+    <table>
+      <thead><tr><th style="width:50%">Client</th><th style="width:30%">Abonnement (CHF/mois)</th><th style="width:20%">Statut</th></tr></thead>
+      <tbody id="online-tbody"><tr><td colspan="3"><div class="loading"><div class="spinner"></div>Chargement…</div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- COMPTA -->
+<div id="sec-compta" class="section">
+  <div class="metrics metrics-4">
+    <div class="metric">
+      <div class="metric-label">CA total 2026</div>
+      <div class="metric-value" id="ca-total">—</div>
+      <div class="metric-sub" id="ca-pct"></div>
+      <div class="pbar"><div class="pbar-fill" id="ca-bar" style="width:0%;background:var(--accent)"></div></div>
+    </div>
+    <div class="metric"><div class="metric-label">Total dépenses</div><div class="metric-value" id="dep-total">—</div></div>
+    <div class="metric"><div class="metric-label">Bénéfice net</div><div class="metric-value" id="ben-total">—</div></div>
+    <div class="metric"><div class="metric-label">Bénéfice mois récent</div><div class="metric-value" id="ben-mois">—</div><div class="metric-sub" id="ben-mois-lbl"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Revenus & dépenses</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn" onclick="openModal('modal-recette')">+ Recette</button>
+        <button class="btn" onclick="openModal('modal-depense')">+ Dépense</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button class="ttab active" onclick="filterCompta('tous',this)">Tous</button>
+      <button class="ttab" onclick="filterCompta('recette',this)">Recettes</button>
+      <button class="ttab" onclick="filterCompta('depense',this)">Dépenses</button>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th style="width:20%">Date</th><th style="width:44%">Description</th><th style="width:20%">Montant</th><th style="width:16%">Type</th></tr></thead>
+      <tbody id="compta-tbody"><tr><td colspan="4"><div class="loading"><div class="spinner"></div>Chargement…</div></td></tr></tbody>
+    </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Dépenses fixes de référence</span>
+      <span style="font-size:11px;color:var(--text-3)">Proposées à la relecture chaque mois</span>
+    </div>
+    <table>
+      <thead><tr><th>Dépense</th><th>Référence (CHF)</th></tr></thead>
+      <tbody id="fixes-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FACTURES -->
+<div id="sec-ca" class="section">
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">CA Mensuel</span>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:10%">Mois</th>
+        <th style="width:12%">Séances</th>
+        <th style="width:13%">CA Présentiel</th>
+        <th style="width:10%">Clients online</th>
+        <th style="width:13%">CA Online</th>
+        <th style="width:13%">Total recettes</th>
+        <th style="width:13%">Dépenses</th>
+        <th style="width:13%">Net</th>
+      </tr></thead>
+      <tbody id="ca-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div>Chargement…</div></td></tr></tbody>
+    </table>
+    </div>
+    <div id="ca-totaux" style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<div id="sec-factures" class="section">
+  <div class="card">
+    <div class="card-head"><span class="card-title">Créer une facture</span></div>
+    <div class="form-row"><label>Client</label><select id="f-client"><option value="">— Sélectionner —</option></select></div>
+    <div class="form-row"><label>Prestation</label><input id="f-prest" placeholder="ex: Pack 10 séances coaching"></div>
+    <div class="form-row"><label>Montant (CHF)</label><input id="f-mont" type="number" placeholder="0"></div>
+    <div class="form-row"><label>Date</label><input id="f-date" type="date"></div>
+    <div class="form-actions"><button class="btn btn-p" onclick="genFacture()">Générer la facture</button></div>
+  </div>
+  <div class="card" id="f-preview" style="display:none">
+    <div class="card-head">
+      <span class="card-title" id="f-num"></span>
+      <span class="badge b-ok">Émise</span>
+    </div>
+    <div class="inv-block" id="f-content"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Historique factures</span></div>
+    <table>
+      <thead><tr><th style="width:18%">N°</th><th style="width:25%">Client</th><th style="width:17%">Montant</th><th style="width:18%">Date</th><th style="width:14%">Commentaire</th><th style="width:8%">Action</th></tr></thead>
+      <tbody id="fhist-tbody"><tr><td colspan="4"><div class="loading"><div class="spinner"></div>Chargement…</div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<!-- MODALS -->
+<div class="overlay" id="modal-nouveau-mois">
+  <div class="modal">
+    <div class="modal-title" id="nm-title">Nouveau mois</div>
+    <div class="form-row"><label>Mois</label><select id="nm-mois"></select></div>
+    <div style="font-size:11px;font-weight:500;color:var(--text-3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Relecture des dépenses fixes</div>
+    <div id="dep-relecture"></div>
+    <div class="dep-total"><span>Total ce mois</span><span id="dep-rel-total">0 CHF</span></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-nouveau-mois')">Annuler</button>
+      <button class="btn btn-p" onclick="confirmerNouveauMois()">Créer le mois</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-renouv">
+  <div class="modal">
+    <div class="modal-title" id="renouv-title">Renouveler le pack</div>
+    <div class="infobox" id="renouv-info"></div>
+    <div class="form-row"><label>Nouveau nb séances</label><input id="rn-nb" type="number" value="10" min="1"></div>
+    <div class="form-row"><label>Nouveau prix (CHF)</label><input id="rn-prix" type="number"></div>
+    <div class="form-row"><label>Date</label><input id="rn-date" type="date"></div>
+    <div class="infobox">Une facture sera générée automatiquement.</div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-renouv')">Annuler</button>
+      <button class="btn btn-p" onclick="confirmerRenouvellement()">Renouveler & facturer</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="overlay" id="modal-add-seance">
+  <div class="modal">
+    <div class="modal-title">Nouvelle séance</div>
+    <div class="form-row"><label>Client</label><input id="as-client" readonly style="background:var(--surface-2);color:var(--text-3)"></div>
+    <div class="form-row"><label>Date</label><input id="as-date" type="date"></div>
+    <div class="form-row"><label>Prix (CHF)</label><input id="as-prix" type="number" step="0.5"></div>
+    <div class="form-row"><label>Commentaire (optionnel)</label><input id="as-commentaire" placeholder="Ex: Venu seul, tarif solo..."></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-add-seance')">Annuler</button>
+      <button class="btn btn-p" onclick="confirmerAddSeance()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-pres">
+  <div class="modal">
+    <div class="modal-title">Nouveau client présentiel</div>
+    <div class="form-row"><label>Prénom Nom</label><input id="p-nom"></div>
+    <div class="form-row"><label>Prix / séance (CHF)</label><input id="p-prix" type="number" value="100"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-pres')">Annuler</button>
+      <button class="btn btn-p" onclick="addPresClient()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-ligne">
+  <div class="modal">
+    <div class="modal-title">Ajouter une ligne séance</div>
+    <div class="infobox">Utile quand un client renouvelle en cours de mois à un prix différent.</div>
+    <div class="form-row"><label>Client</label><select id="ll-client"></select></div>
+    <div class="form-row"><label>Prix / séance (CHF)</label><input id="ll-prix" type="number" value="90"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-ligne')">Annuler</button>
+      <button class="btn btn-p" onclick="confirmerAddLigne()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-online">
+  <div class="modal">
+    <div class="modal-title">Nouveau client online</div>
+    <div class="form-row"><label>Prénom Nom</label><input id="o-nom"></div>
+    <div class="form-row"><label>Abonnement (CHF/mois)</label><input id="o-abo" type="number" value="150"></div>
+    <div class="form-row"><label>Mois de départ</label><select id="o-mois-depart"></select></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-online')">Annuler</button>
+      <button class="btn btn-p" onclick="addOnlineClient()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-edit-facture">
+  <div class="modal">
+    <div class="modal-title">Modifier la facture</div>
+    <div class="infobox" id="edit-facture-info"></div>
+    <div class="form-row"><label>Montant (CHF)</label><input id="ef-montant" type="number"></div>
+    <div class="form-row"><label>Date</label><input id="ef-date" type="date"></div>
+    <div class="form-row"><label>Prestation</label><input id="ef-prestation" type="text"></div>
+    <div class="form-row"><label>Commentaire (optionnel)</label><input id="ef-commentaire" type="text" placeholder="ex: Pack séances + programme nutrition"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-edit-facture')">Annuler</button>
+      <button class="btn btn-p" onclick="sauvegarderFacture()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-paiement-online">
+  <div class="modal">
+    <div class="modal-title" id="paiement-title">Valider le paiement</div>
+    <div class="infobox" id="paiement-info"></div>
+    <div class="form-row"><label>Date de paiement</label><input id="paiement-date" type="date"></div>
+    <div class="infobox">Une facture sera générée automatiquement.</div>
+    <div class="form-actions">
+      <button class="btn" onclick="annulerPaiement()">Annuler</button>
+      <button class="btn btn-p" onclick="confirmerPaiement()">Valider & facturer</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-add-pack">
+  <div class="modal">
+    <div class="modal-title">Nouveau client — Pack</div>
+    <div class="form-row"><label>Nom du client</label><input id="ap-nom" placeholder="Prénom Nom"></div>
+    <div class="form-row"><label>Nombre de séances</label><input id="ap-pack" type="number" value="10"></div>
+    <div class="form-row"><label>Prix du pack (CHF)</label><input id="ap-prix" type="number" value="900"></div>
+    <div class="form-row"><label>Date de début</label><input id="ap-date" type="date"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-add-pack')">Annuler</button>
+      <button class="btn btn-p" onclick="confirmerAddPackClient()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-recette">
+  <div class="modal">
+    <div class="modal-title">Nouvelle recette</div>
+    <div class="form-row"><label>Description</label><input id="r-desc"></div>
+    <div class="form-row"><label>Montant (CHF)</label><input id="r-mont" type="number"></div>
+    <div class="form-row"><label>Date</label><input id="r-date" type="date"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-recette')">Annuler</button>
+      <button class="btn btn-p" onclick="addRecette()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-depense">
+  <div class="modal">
+    <div class="modal-title">Nouvelle dépense</div>
+    <div class="form-row"><label>Description</label><input id="d-desc"></div>
+    <div class="form-row"><label>Montant (CHF)</label><input id="d-mont" type="number"></div>
+    <div class="form-row"><label>Date</label><input id="d-date" type="date"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-depense')">Annuler</button>
+      <button class="btn btn-p" onclick="addDepense()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── SUPABASE CONFIG ───────────────────────────────────────────────────────
+const SUPA_URL = 'https://chxpknpmidtwglviitpx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoeHBrbnBtaWR0d2dsdmlpdHB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mzg1MjQsImV4cCI6MjA5MDMxNDUyNH0.fTEx5NAQmMZZV0uhw9SSMuDUcrv8-ezOQfhJwSJ9d80';
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+// ─── CONSTANTS ─────────────────────────────────────────────────────────────
+const PLAFOND = 100000;
+const TOUS_MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MOIS_DATES = {'Janvier':'2026-01-31','Février':'2026-02-28','Mars':'2026-03-31','Avril':'2026-04-30','Mai':'2026-05-31','Juin':'2026-06-30','Juillet':'2026-07-31','Août':'2026-08-31','Septembre':'2026-09-30','Octobre':'2026-10-31','Novembre':'2026-11-30','Décembre':'2026-12-31'};
+
+let seancesV2 = [];
+let currentClientSeances = null;
+let DEPS_REF = [
+  {desc:'Leasing auto (70%)',montant:459.64},{desc:'Assurance auto (70%)',montant:49.04},
+  {desc:'Essence (70%)',montant:221.76},{desc:'Salle coaching',montant:370},
+  {desc:'Assurance pro + RC',montant:186.97},{desc:'Hubfit',montant:96},
+  {desc:'Capcut',montant:23.04},{desc:'Google Drive',montant:9.6},
+  {desc:'ChatGPT Plus',montant:22.08},{desc:'Téléphone',montant:40.85},
+  {desc:'Fiduciaire',montant:41.67},{desc:'Péage',montant:140.54},
+  {desc:'Pneus (lissé)',montant:40},{desc:'AVS (Charges sociales)',montant:687.5},
+];
+
+const SEANCES_AVANT_JANV_INIT = {'Nikolai':6,'Arun':6,'Carmen':7,'Philippe':4,'Jésus et Paola':8,'Alen':0,'Edi et Nathalie':2,'Mélissa':7,'Malik':4,'Sarah':5,'Aurore':11,'Valentin':2};
+let SEANCES_AVANT_JANV = {...SEANCES_AVANT_JANV_INIT};
+let clientsRenouveles = {}; // clients ayant renouvelé — avant janvier ne compte plus
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let packs = [], seances = [], onlineClients = [], ecritures = [], factures = [];
+let moisActifs = ['Janvier','Février','Mars'];
+let currentMonth = 'Mars';
+let comptaFilter = 'tous';
+let selectedPackNom = null;
+let factureNum = 1;
+let initialized = false;
+let reportsDebit = {};
+let currentOnlineMonth = 'Mars';
+let onlineMonthData = {}; // {mois: {clientNom: {abo, paye, factureId, ecritureId}}}
+let pendingPaiement = null; // {nom, mois, abo} en attente de confirmation // soldes négatifs reportés après renouvellement, stockés en base
+let renewalDates = {}; // date de dernier renouvellement par client
+
+// ─── SYNC ──────────────────────────────────────────────────────────────────
+function setSyncStatus(state) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+  lbl.textContent = state === 'syncing' ? 'Sauvegarde…' : state === 'error' ? 'Erreur sync' : 'Synchronisé';
+}
+
+async function loadAll() {
+  setSyncStatus('syncing');
+  try {
+    const [rPacks, rSeances, rOnline, rEcritures, rFactures, rConfig] = await Promise.all([
+      sb.from('packs').select('*').order('nom'),
+      sb.from('seances').select('*'),
+      sb.from('online_clients').select('*').order('nom'),
+      sb.from('ecritures').select('*').order('date_ecriture'),
+      sb.from('factures').select('*').order('created_at'),
+      sb.from('config').select('*'),
+    ]);
+    // Si erreur Supabase, data est null — on garde les tableaux vides sans initData
+    if (rPacks.error) { setSyncStatus('error'); console.error('Erreur packs:', rPacks.error.message); return; }
+    packs = rPacks.data || [];
+    seances = rSeances.data || [];
+    onlineClients = rOnline.data || [];
+    ecritures = rEcritures.data || [];
+    factures = rFactures.data || [];
+    // Config
+    const cfgMois = rConfig.data?.find(c => c.id === 'mois_actifs');
+    if (cfgMois) moisActifs = cfgMois.valeur;
+    const cfgNum = rConfig.data?.find(c => c.id === 'facture_num');
+    if (cfgNum) factureNum = cfgNum.valeur;
+    const cfgRenouveles = rConfig.data?.find(c => c.id === 'clients_renouveles');
+    if (cfgRenouveles) clientsRenouveles = cfgRenouveles.valeur;
+    const cfgReports = rConfig.data?.find(c => c.id === 'reports_debit');
+    if (cfgReports) reportsDebit = cfgReports.valeur;
+    const cfgRenewalDates = rConfig.data?.find(c => c.id === 'renewal_dates');
+    if (cfgRenewalDates) renewalDates = cfgRenewalDates.valeur;
+    const cfgOnlineData = rConfig.data?.find(c => c.id === 'online_month_data');
+    if (cfgOnlineData) onlineMonthData = cfgOnlineData.valeur;
+    const cfgDepsRef = rConfig.data?.find(c => c.id === 'deps_ref');
+    if (cfgDepsRef) DEPS_REF = cfgDepsRef.valeur;
+    // Charger seances_v2
+    const rSeancesV2 = await sb.from('seances_v2').select('*').order('date_seance', { ascending: true });
+    seancesV2 = rSeancesV2.data || [];
+    // Ne jamais réinitialiser automatiquement — les données sont dans Supabase
+    setSyncStatus('ok');
+    initialized = true;
+    renderAll();
+  } catch(e) {
+    setSyncStatus('error');
+    console.error(e);
+  }
+}
+
+async function initData() {
+  setSyncStatus('syncing');
+  // Packs initiaux
+  const initPacks = [
+    {nom:'Nikolai',pack:20,prix:1350,historique:[]},{nom:'Arun',pack:10,prix:675,historique:[]},
+    {nom:'Carmen',pack:10,prix:900,historique:[]},{nom:'Philippe',pack:10,prix:800,historique:[]},
+    {nom:'Jésus et Paola',pack:10,prix:1450,historique:[]},{nom:'Edi et Nathalie',pack:10,prix:1100,historique:[]},
+    {nom:'Alen',pack:10,prix:900,historique:[]},{nom:'Mélissa',pack:10,prix:900,historique:[]},
+    {nom:'Malik',pack:10,prix:1000,historique:[]},{nom:'Sarah',pack:10,prix:1000,historique:[]},
+    {nom:'Aurore',pack:12,prix:1080,historique:[]},{nom:'Valentin',pack:10,prix:1190,historique:[]},
+  ];
+  const {data: pData} = await sb.from('packs').insert(initPacks).select();
+  packs = pData || [];
+
+  // Séances initiales
+  const seancesInit = [
+    // Janvier
+    {mois:'Janvier',nom:'Nikolai',prix:135,s:[1,1,1,1,null]},{mois:'Janvier',nom:'Carmen',prix:90,s:[2,null,2,null,null]},
+    {mois:'Janvier',nom:'Philippe',prix:80,s:[1,1,null,1,null]},{mois:'Janvier',nom:'Jésus et Paola',prix:135,s:[2,2,2,2,null]},
+    {mois:'Janvier',nom:'Edi et Nathalie',prix:110,s:[2,2,2,2,null]},{mois:'Janvier',nom:'Alen',prix:90,s:[1,1,1,1,null]},
+    {mois:'Janvier',nom:'Mélissa',prix:90,s:[2,null,2,null,null]},{mois:'Janvier',nom:'Malik',prix:100,s:[null,2,2,2,null]},
+    {mois:'Janvier',nom:'Sarah',prix:100,s:[2,2,2,2,null]},{mois:'Janvier',nom:'Aurore',prix:90,s:[1,1,null,1,null]},
+    {mois:'Janvier',nom:'Valentin',prix:100,s:[2,null,2,2,null]},
+    // Février
+    {mois:'Février',nom:'Nikolai',prix:135,s:[null,null,null,null,null]},{mois:'Février',nom:'Carmen',prix:90,s:[null,null,null,1,null]},
+    {mois:'Février',nom:'Philippe',prix:80,s:[null,null,null,null,null]},{mois:'Février',nom:'Jésus et Paola',prix:135,s:[null,null,null,2,null]},
+    {mois:'Février',nom:'Edi et Nathalie',prix:110,s:[null,null,null,2,null]},{mois:'Février',nom:'Alen',prix:90,s:[null,null,null,1,null]},
+    {mois:'Février',nom:'Mélissa',prix:90,s:[null,null,null,2,null]},{mois:'Février',nom:'Malik',prix:100,s:[null,null,null,2,null]},
+    {mois:'Février',nom:'Sarah',prix:100,s:[null,null,null,2,null]},{mois:'Février',nom:'Aurore',prix:90,s:[null,null,null,1,null]},
+    {mois:'Février',nom:'Valentin',prix:100,s:[null,null,null,2,null]},
+    // Mars
+    {mois:'Mars',nom:'Nikolai',prix:135,s:[1,1,1,1,1]},{mois:'Mars',nom:'Carmen',prix:90,s:[2,2,2,2,1]},
+    {mois:'Mars',nom:'Philippe',prix:80,s:[1,1,1,1,1]},{mois:'Mars',nom:'Jésus et Paola',prix:135,s:[2,2,2,2,1]},
+    {mois:'Mars',nom:'Edi et Nathalie',prix:110,s:[2,2,2,1,1]},{mois:'Mars',nom:'Alen',prix:90,s:[1,1,1,1,0]},
+    {mois:'Mars',nom:'Mélissa',prix:90,s:[2,0,1,2,1]},{mois:'Mars',nom:'Malik',prix:100,s:[0,0,0,0,0]},
+    {mois:'Mars',nom:'Sarah',prix:100,s:[2,2,2,2,1]},{mois:'Mars',nom:'Aurore',prix:90,s:[2,1,2,2,1]},
+    {mois:'Mars',nom:'Valentin',prix:100,s:[2,2,1,2,1]},
+  ];
+  const {data: sData} = await sb.from('seances').insert(seancesInit).select();
+  seances = sData || [];
+
+  // Online clients
+  const initOnline = [
+    {nom:'Loan Serex',abo:150},{nom:'Kévin Trigui',abo:150},{nom:'Duncan Schenk',abo:150},
+    {nom:'Alessandro M',abo:150},{nom:'Benoît Pichol',abo:200},{nom:'Joan Herrero',abo:150},
+    {nom:'Florian Pichol',abo:50},{nom:'Abel Turnes De Oliveira',abo:150},{nom:'Laeticia Nmvelo',abo:150},
+    {nom:'Méganne Perrier',abo:150},{nom:'Léon Rossi',abo:150},{nom:'Céline Pate',abo:150},
+    {nom:'Bastien Bouchart',abo:200},{nom:'Kévin Gay',abo:150},{nom:'Mathilde Lecompte',abo:150},
+    {nom:'Aurore Vallino',abo:150},
+  ];
+  const {data: oData} = await sb.from('online_clients').insert(initOnline).select();
+  onlineClients = oData || [];
+
+  // Écritures initiales
+  const initEcritures = [
+    {type:'recette',libelle:'CA Coaching présentiel — Janvier',montant:6090,date_ecriture:'2026-01-31',mois:'Janvier'},
+    {type:'recette',libelle:'CA Coaching online — Janvier',montant:2400,date_ecriture:'2026-01-31',mois:'Janvier'},
+    {type:'recette',libelle:'CA Coaching présentiel — Février',montant:1540,date_ecriture:'2026-02-28',mois:'Février'},
+    {type:'recette',libelle:'CA Coaching online — Février',montant:2400,date_ecriture:'2026-02-28',mois:'Février'},
+    {type:'recette',libelle:'CA Coaching présentiel — Mars',montant:7300,date_ecriture:'2026-03-31',mois:'Mars'},
+    {type:'recette',libelle:'CA Coaching online — Mars',montant:2400,date_ecriture:'2026-03-31',mois:'Mars'},
+  ];
+  ['Janvier','Février','Mars'].forEach(mois => {
+    DEPS_REF.forEach(d => initEcritures.push({type:'depense',libelle:d.desc,montant:d.montant,date_ecriture:MOIS_DATES[mois],mois}));
+  });
+  const {data: eData} = await sb.from('ecritures').insert(initEcritures).select();
+  ecritures = eData || [];
+
+  // Config
+  await sb.from('config').upsert([{id:'mois_actifs',valeur:moisActifs},{id:'facture_num',valeur:1}]);
+}
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────
+// ─── CALCULS SEANCES V2 ────────────────────────────────────────────────────
+function calcFaitesV2(nom) {
+  return seancesV2.filter(s => s.nom === nom).length;
+}
+
+function calcSolde(p) {
+  const faites = calcFaitesV2(p.nom);
+  return (p.total_achete || 0) - faites;
+}
+
+function calcFaitesTotal(nom) {
+  // Compatibilité — utilise seancesV2 si disponible, sinon ancienne méthode
+  if (seancesV2.length > 0 && seancesV2.some(s => s.nom === nom)) {
+    return calcFaitesV2(nom);
+  }
+  let total = 0;
+  seances.filter(s => s.nom === nom).forEach(s => {
+    total += (s.s || []).reduce((acc, v) => acc + (Number(v) || 0), 0);
+  });
+  return total;
+}
+
+function calcNumInPack(nom, numCumul, pack) {
+  // Utilise pack_blocs si défini (cas packs de tailles différentes)
+  // Format pack_blocs: [{size:10, count:5}, {size:15, count:1}]
+  const blocs = pack && pack.pack_blocs ? pack.pack_blocs : null;
+  
+  if (blocs) {
+    let cursor = 0;
+    for (const bloc of blocs) {
+      const size = Number(bloc.size);
+      const count = Number(bloc.count);
+      const end = cursor + size * count;
+      if (numCumul <= end) {
+        const posInBloc = numCumul - cursor;
+        const num = ((posInBloc - 1) % size) + 1;
+        return { num, size };
+      }
+      cursor = end;
+    }
+  }
+  
+  // Fallback : pack uniforme
+  const size = Number(pack ? pack.pack : 10);
+  return { num: ((numCumul - 1) % size) + 1, size };
+}
+
+function calcPositionDansPack(nom) {
+  // Position dans le pack actuel
+  const p = packs.find(pk => pk.nom === nom);
+  if (!p) return null;
+  const faites = calcFaitesV2(nom);
+  const packSize = Number(p.pack);
+  const totalAchete = Number(p.total_achete) || packSize;
+  // Séances achetées avant le pack actuel = total - pack actuel
+  const debutPackActuel = totalAchete - packSize;
+  const posInPack = faites - debutPackActuel;
+  return { pos: posInPack, total: packSize, faites, totalAchete };
+}
+
+function fmt(n) { return Number(n).toLocaleString('fr-CH', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function renderAll() {
+  if (moisActifs && moisActifs.length) {
+    currentOnlineMonth = moisActifs[moisActifs.length - 1];
+  }
+  try { renderPacks(); } catch(e) { console.error('renderPacks:', e); }
+  try { renderMonthBar(); } catch(e) { console.error('renderMonthBar:', e); }
+  try { renderPres(); } catch(e) { console.error('renderPres:', e); }
+  try { renderClientBar(); } catch(e) { console.error('renderClientBar:', e); }
+  try { renderSeancesGlobalStats(); } catch(e) { console.error('renderSeancesGlobalStats:', e); }
+  try { renderOnline(); } catch(e) { console.error('renderOnline:', e); }
+  try { renderCompta(); } catch(e) { console.error('renderCompta:', e); }
+  try { renderFactures(); } catch(e) { console.error('renderFactures:', e); }
+  try { renderFixes(); } catch(e) { console.error('renderFixes:', e); }
+}
+
+function renderPacks() {
+  const tbody = document.getElementById('packs-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  let totalV = 0, totalF = 0, alerts = 0;
+  packs.filter(p => !p.archive).forEach(p => {
+    const faites = calcFaitesV2(p.nom);
+    const totalAchete = p.total_achete || p.pack;
+    totalV += totalAchete; totalF += faites;
+    const solde = calcSolde(p);
+    const rest = solde;
+    const pct = Math.min(100, Math.round((faites / totalAchete) * 100));
+    let badge, cls, barColor;
+    if (solde < 0) { badge = 'Doit ' + Math.abs(solde) + ' séance' + (Math.abs(solde) > 1 ? 's' : ''); cls = 'b-off'; barColor = 'var(--danger)'; alerts++; }
+    else if (solde === 0) { badge = 'Terminé'; cls = 'b-off'; barColor = 'var(--danger)'; alerts++; }
+    else if (solde <= 2) { badge = 'À renouveler'; cls = 'b-warn'; barColor = 'var(--warn)'; alerts++; }
+    else { badge = 'En cours'; cls = 'b-ok'; barColor = 'var(--accent)'; }
+    const hasHist = p.historique && p.historique.length > 0;
+    const soldeDisplay = solde < 0
+      ? `<span style="color:var(--danger);font-weight:500">${solde}</span>`
+      : `<span style="font-weight:500">${solde}</span>`;
+    tbody.innerHTML += `<tr>
+      <td title="${p.nom}" style="font-weight:500">${p.nom}</td>
+      <td>${p.pack}</td>
+      <td style="font-size:12px;color:var(--text-3)">${totalAchete}</td>
+      <td style="font-weight:500">${faites}</td>
+      <td>${soldeDisplay}</td>
+      <td>${p.prix}</td>
+      <td><div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${barColor}"></div></div><div style="font-size:10px;color:var(--text-3);margin-top:2px">${pct}%</div></td>
+      <td><span class="badge ${cls}">${badge}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn-sm p" onclick="ouvrirRenouvellement('${p.nom}')">Renouveler</button>
+        ${hasHist ? `<button class="btn-sm" onclick="voirHistorique('${p.nom}')">Hist.</button>` : ''}
+        <button class="btn-sm" style="color:var(--text-3);border-color:var(--border-med)" onclick="archiverPackClient('${p.nom}')">Archiver</button>
+        ${p.historique && p.historique.length > 0 ? `<button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="annulerDernierRenouvellement('${p.nom}')">↩ Annuler</button>` : ''}
+        <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="supprimerClientPack('${p.nom}')">✕</button>
+      </td>
+    </tr>`;
+  });
+  document.getElementById('pk-nb').textContent = packs.length;
+  document.getElementById('pk-vendues').textContent = totalV;
+  document.getElementById('pk-faites').textContent = totalF;
+  document.getElementById('pk-alert').textContent = alerts;
+}
+
+function renderMonthBar() {
+  // Gardé pour compatibilité (mois actifs utilisés ailleurs)
+}
+
+function renderClientBar() {
+  const bar = document.getElementById('client-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  const clients = [...new Set(packs.filter(p => !p.archive).map(p => p.nom))].sort((a,b) => a.localeCompare(b, 'fr'));
+  clients.forEach(nom => {
+    const btn = document.createElement('button');
+    btn.className = 'mtab' + (nom === currentClientSeances ? ' active' : '');
+    btn.textContent = nom;
+    btn.onclick = () => { currentClientSeances = nom; renderClientBar(); renderSeancesClient(); };
+    bar.appendChild(btn);
+  });
+}
+
+function renderPackCounter(nom, isSamePrev) {
+  // Compatibilité avec l'ancien système (non utilisé dans la nouvelle vue)
+  return '';
+}
+
+function renderPres() {
+  // Délègue vers la nouvelle fonction
+  renderClientBar();
+  renderSeancesGlobalStats();
+}
+
+function renderSeancesGlobalStats() {
+  // Calcul stats globales du mois courant depuis seancesV2
+  const moisActuelNom = new Date().toLocaleString('fr-FR', {month: 'long'}).charAt(0).toUpperCase() + new Date().toLocaleString('fr-FR', {month: 'long'}).slice(1);
+  const moisNum = new Date().getMonth() + 1;
+  const annee = new Date().getFullYear();
+  const seancesMois = seancesV2.filter(s => {
+    const d = new Date(s.date_seance);
+    return d.getMonth() + 1 === moisNum && d.getFullYear() === annee;
+  });
+  const nbClients = new Set(seancesMois.map(s => s.nom)).size;
+  const ca = seancesMois.reduce((sum, s) => sum + Number(s.prix || 0), 0);
+  const nb = seancesMois.length;
+  const elNb = document.getElementById('nb-pres');
+  const elCa = document.getElementById('ca-pres');
+  const elNbS = document.getElementById('nb-seances');
+  if (elNb) elNb.textContent = nbClients;
+  if (elCa) elCa.textContent = fmt(ca) + ' CHF';
+  if (elNbS) elNbS.textContent = nb;
+}
+
+function renderSeancesClient() {
+  const nom = currentClientSeances;
+  const empty = document.getElementById('seances-client-empty');
+  const content2 = document.getElementById('seances-client-content');
+  if (!nom) { empty.style.display = ''; content2.style.display = 'none'; return; }
+  empty.style.display = 'none';
+  content2.style.display = '';
+
+  const p = packs.find(pk => pk.nom === nom);
+  const seancesClient = seancesV2.filter(s => s.nom === nom);
+  const totalFaites = seancesClient.length;
+  const totalAchete = p ? (Number(p.total_achete) || 0) : 0;
+  const packSize = p ? Number(p.pack) : 10;
+  const solde = totalAchete - totalFaites;
+
+  // Compteur cumulatif
+  const pctCumul = totalAchete > 0 ? Math.min(100, Math.round((totalFaites / totalAchete) * 100)) : 0;
+  const colCumul = solde < 0 ? 'var(--danger)' : solde <= 2 ? '#E07B2A' : '#1D9E75';
+
+  // Position dans pack actuel
+  // Séances achetées avant le pack actuel
+  const debutPackActuel = totalAchete - packSize;
+  const posInPack = totalFaites - debutPackActuel;
+  const affPos = posInPack < 0 ? 0 : posInPack;
+
+  document.getElementById('seances-cumul').innerHTML =
+    '<span style="color:' + colCumul + ';font-size:18px;font-weight:600">' + totalFaites + '/' + totalAchete + '</span>' +
+    '<span style="color:var(--text-3);font-size:13px;margin-left:8px">(' + (solde < 0 ? solde : '+' + solde) + ')</span>';
+  document.getElementById('seances-pack-pos').textContent =
+    'Pack en cours : ' + affPos + '/' + packSize;
+  document.getElementById('seances-pbar-fill').style.width = pctCumul + '%';
+  document.getElementById('seances-pbar-fill').style.background = colCumul;
+
+  // Grouper par mois
+  const tbody = document.getElementById('seances-v2-tbody');
+  tbody.innerHTML = '';
+
+  const moisOrdre = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const groupes = {};
+  seancesClient.forEach((s, idx) => {
+    const d = new Date(s.date_seance);
+    const annee = d.getFullYear();
+    const moisNom = moisOrdre[d.getMonth()];
+    const key = annee + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const label = moisNom + ' ' + annee;
+    if (!groupes[key]) groupes[key] = { label, seances: [] };
+    groupes[key].seances.push({ ...s, numCumul: idx + 1 });
+  });
+
+  // Récapitulatif financier
+  const totalPrixReels = seancesClient.reduce((sum, s) => sum + Number(s.prix || 0), 0);
+  // Prix unitaire de référence = prix le plus fréquent dans les séances
+  const prixCount = {};
+  seancesClient.forEach(s => {
+    const px = Number(s.prix);
+    prixCount[px] = (prixCount[px] || 0) + 1;
+  });
+  const prixPackUnitaire = Object.keys(prixCount).length > 0
+    ? Number(Object.keys(prixCount).reduce((a, b) => prixCount[a] > prixCount[b] ? a : b))
+    : 0;
+  // Total au tarif pack = nombre de séances × prix unitaire de référence
+  const totalPrixPack = totalFaites * prixPackUnitaire;
+  const avoir = totalPrixPack - totalPrixReels;
+  
+  const recap = document.getElementById('seances-recap');
+  if (recap) {
+    if (Math.abs(avoir) > 0.01 && prixPackUnitaire > 0) {
+      const avoirCol = avoir > 0 ? 'var(--danger)' : '#1D9E75';
+      const avoirLabel = avoir > 0 ? 'Avoir à faire au client' : 'Surplus client';
+      recap.innerHTML = '<div style="padding:12px 16px;border-top:2px solid var(--border);background:var(--surface-2,#f5f5f0)">' +
+        '<div style="font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px">Récapitulatif financier</div>' +
+        '<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:13px">' +
+        '<div><span style="color:var(--text-3)">Prix pack unitaire : </span><strong>' + prixPackUnitaire.toFixed(2) + ' CHF</strong></div>' +
+        '<div><span style="color:var(--text-3)">Total au tarif pack : </span><strong>' + totalPrixPack.toFixed(2) + ' CHF</strong></div>' +
+        '<div><span style="color:var(--text-3)">Total réel facturé : </span><strong>' + totalPrixReels.toFixed(2) + ' CHF</strong></div>' +
+        '<div style="padding:4px 12px;background:' + avoirCol + '20;border:1px solid ' + avoirCol + ';border-radius:6px">' +
+        '<span style="color:' + avoirCol + ';font-weight:600">' + avoirLabel + ' : ' + Math.abs(avoir).toFixed(2) + ' CHF</span></div>' +
+        '</div></div>';
+      recap.style.display = '';
+    } else {
+      recap.style.display = 'none';
+    }
+  }
+
+  Object.keys(groupes).sort().forEach(key => {
+    const g = groupes[key];
+    const caMois = g.seances.reduce((sum, s) => sum + Number(s.prix || 0), 0);
+    // En-tête du mois
+    tbody.innerHTML += '<tr style="background:var(--surface-2,#f5f5f0)">' +
+      '<td colspan="6" style="padding:6px 12px;font-weight:500;font-size:12px;color:var(--text-2)">' +
+      g.label + ' — ' + g.seances.length + ' séance' + (g.seances.length > 1 ? 's' : '') +
+      ' — ' + fmt(caMois) + ' CHF</td></tr>';
+
+    g.seances.forEach(s => {
+      const numCumul = s.numCumul;
+      // Position dans pack
+      // Numéro dans le pack : basé sur l'historique des renouvellements
+      const posP = calcNumInPack(nom, numCumul, p);
+      const packLabel = posP.num + '/' + posP.size;
+      const depasse = numCumul > totalAchete;
+      const cumulLabel = numCumul + '/' + totalAchete;
+      const dateStr = new Date(s.date_seance).toLocaleDateString('fr-CH');
+
+      tbody.innerHTML += '<tr>' +
+        '<td style="font-family:monospace;font-size:12px">' + dateStr + '</td>' +
+        '<td style="font-size:12px;font-weight:500;color:' + (depasse ? 'var(--danger)' : 'var(--text)') + '">' + packLabel + (depasse ? ' ⚠' : '') + '</td>' +
+        '<td style="font-size:12px;color:var(--text-2)">' + cumulLabel + '</td>' +
+        '<td style="padding:3px 4px"><input type="number" value="' + Number(s.prix).toFixed(2) + '" step="0.5" style="width:70px;padding:2px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);" onchange="updatePrixSeanceV2(\'' + s.id + '\', this.value)"></td>' +
+        '<td style="padding:3px 6px"><input type="text" value="' + (s.commentaire || '') + '" placeholder="Commentaire..." ' +
+        'style="width:100%;padding:2px 6px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);" ' +
+        'onchange="updateCommentaireV2(\'' + s.id + '\', this.value)"></td>' +
+        '<td style="padding:2px 4px;text-align:center"><button class="btn-sm" style="color:var(--danger);border-color:var(--danger);font-size:10px" ' +
+        'onclick="supprimerSeanceV2(\'' + s.id + '\')" title="Supprimer">✕</button></td>' +
+        '</tr>';
+    });
+  });
+}
+
+async function supprimerLigneSeance(id, nom) {
+  // Compatibilité ancienne table
+  if (!confirm('Supprimer cette ligne ?')) return;
+  setSyncStatus('syncing');
+  sb.from('seances').delete().eq('id', id).then(() => {
+    seances = seances.filter(s => s.id !== id);
+    setSyncStatus('ok');
+    renderPres();
+    renderPacks();
+  });
+}
+
+async function supprimerSeanceV2(id) {
+  if (!confirm('Supprimer cette séance ?')) return;
+  setSyncStatus('syncing');
+  await sb.from('seances_v2').delete().eq('id', id);
+  seancesV2 = seancesV2.filter(s => s.id !== id);
+  setSyncStatus('ok');
+  renderSeancesClient();
+  renderPacks();
+}
+
+async function updatePrixSeanceV2(id, val) {
+  const prix = parseFloat(val) || 0;
+  if (!prix) return;
+  const row = seancesV2.find(s => s.id === id);
+  if (!row) return;
+  row.prix = prix;
+  setSyncStatus('syncing');
+  await sb.from('seances_v2').update({ prix }).eq('id', id);
+  setSyncStatus('ok');
+  renderSeancesClient();
+  renderSeancesGlobalStats();
+}
+
+async function updateCommentaireV2(id, val) {
+  const row = seancesV2.find(s => s.id === id);
+  if (!row) return;
+  row.commentaire = val;
+  setSyncStatus('syncing');
+  await sb.from('seances_v2').update({ commentaire: val }).eq('id', id);
+  setSyncStatus('ok');
+}
+
+async function updateCommentaire(id, val) {
+  const row = seances.find(s => s.id === id);
+  if (!row) return;
+  row.commentaire = val;
+  setSyncStatus('syncing');
+  await sb.from('seances').update({ commentaire: val }).eq('id', id);
+  setSyncStatus('ok');
+}
+
+async function updateSeance(id, mois, nom, idx, val) {
+  const row = seances.find(s => s.id === id);
+  if (!row) return;
+  const newS = [...(row.s || [null,null,null,null,null])];
+  newS[idx] = val === '' ? null : (parseInt(val) || 0);
+  row.s = newS;
+  setSyncStatus('syncing');
+  await sb.from('seances').update({ s: newS }).eq('id', id);
+  setSyncStatus('ok');
+  renderPres();
+  renderPacks();
+}
+
+function openModalAddSeance() {
+  const nom = currentClientSeances;
+  if (!nom) return;
+  const p = packs.find(pk => pk.nom === nom);
+  document.getElementById('as-client').value = nom;
+  document.getElementById('as-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('as-prix').value = p ? (Number(p.prix) / Number(p.pack)).toFixed(2) : 90;
+  document.getElementById('as-commentaire').value = '';
+  openModal('modal-add-seance');
+}
+
+async function confirmerAddSeance() {
+  const nom = document.getElementById('as-client').value;
+  const date_seance = document.getElementById('as-date').value;
+  const prix = parseFloat(document.getElementById('as-prix').value) || 0;
+  const commentaire = document.getElementById('as-commentaire').value.trim();
+  if (!nom || !date_seance || !prix) { alert('Merci de remplir la date et le prix.'); return; }
+  setSyncStatus('syncing');
+  const { data } = await sb.from('seances_v2').insert([{ nom, date_seance, prix, commentaire: commentaire || null }]).select();
+  if (data) {
+    seancesV2 = [...seancesV2, ...data].sort((a,b) => new Date(a.date_seance) - new Date(b.date_seance));
+  }
+  setSyncStatus('ok');
+  closeModal('modal-add-seance');
+  renderSeancesClient();
+  renderPacks();
+}
+
+function initOnlineMonthData(mois) {
+  if (!onlineMonthData[mois]) {
+    onlineMonthData[mois] = {};
+    const idxMois = TOUS_MOIS.indexOf(mois);
+    onlineClients.forEach(c => {
+      // Respecter le mois de départ du client
+      const moisDepart = c.mois_depart || TOUS_MOIS[0];
+      const idxDepart = TOUS_MOIS.indexOf(moisDepart);
+      if (idxMois >= idxDepart) {
+        onlineMonthData[mois][c.nom] = { abo: c.abo, paye: false };
+      }
+    });
+  }
+}
+
+function renderOnlineMonthBar() {
+  const bar = document.getElementById('online-month-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  // Use moisActifs from config (same as seances tab)
+  const mois = moisActifs && moisActifs.length ? moisActifs : ['Janvier','Février','Mars'];
+  mois.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'mtab' + (m === currentOnlineMonth ? ' active' : '');
+    btn.textContent = m.substring(0, 3);
+    btn.onclick = () => { currentOnlineMonth = m; renderOnlineMonthBar(); renderOnline(); };
+    bar.appendChild(btn);
+  });
+}
+
+async function updateOnlineCommentaire(nom, mois, val) {
+  try {
+    if (!onlineMonthData[mois]) initOnlineMonthData(mois);
+    if (!onlineMonthData[mois][nom]) onlineMonthData[mois][nom] = { abo: onlineClients.find(c=>c.nom===nom)?.abo||150, paye: false };
+    onlineMonthData[mois][nom].commentaire = val;
+    setSyncStatus('syncing');
+    await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('updateOnlineCommentaire error:', e);
+  }
+}
+
+async function toggleAlerte(nom, mois) {
+  try {
+    if (!onlineMonthData[mois]) initOnlineMonthData(mois);
+    if (!onlineMonthData[mois][nom]) onlineMonthData[mois][nom] = { abo: onlineClients.find(c=>c.nom===nom)?.abo||150, paye: false };
+    onlineMonthData[mois][nom].alerte = !onlineMonthData[mois][nom].alerte;
+    setSyncStatus('syncing');
+    await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+    setSyncStatus('ok');
+    renderOnline();
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('toggleAlerte error:', e);
+  }
+}
+
+function togglePaiement(nom, mois) {
+  if (!onlineMonthData[mois]) initOnlineMonthData(mois);
+  if (!onlineMonthData[mois][nom]) onlineMonthData[mois][nom] = { abo: onlineClients.find(c=>c.nom===nom)?.abo||150, paye: false };
+  const etaitPaye = onlineMonthData[mois][nom].paye;
+  if (!etaitPaye) {
+    // Ouvrir modal pour choisir la date de paiement
+    pendingPaiement = { nom, mois, abo: onlineMonthData[mois][nom].abo };
+    document.getElementById('paiement-title').textContent = 'Valider le paiement — ' + nom;
+    document.getElementById('paiement-info').innerHTML = 
+      'Client : <strong>' + nom + '</strong><br>' +
+      'Abonnement : <strong>' + onlineMonthData[mois][nom].abo + ' CHF</strong><br>' +
+      'Mois : <strong>' + mois + '</strong>';
+    document.getElementById('paiement-date').value = today();
+    openModal('modal-paiement-online');
+    // Remettre la case non cochée visuellement en attendant confirmation
+    const cb = document.querySelector(`input[data-nom="${nom}"][data-mois="${mois}"]`);
+    if (cb) cb.checked = false;
+  } else {
+    // Décocher = annuler le paiement et supprimer la facture/recette
+    supprimerPaiement(nom, mois);
+  }
+}
+
+function annulerPaiement() {
+  pendingPaiement = null;
+  closeModal('modal-paiement-online');
+  renderOnline();
+}
+
+async function confirmerPaiement() {
+  if (!pendingPaiement) return;
+  const { nom, mois, abo } = pendingPaiement;
+  const datePaiement = document.getElementById('paiement-date').value;
+  if (!datePaiement) { alert('Merci de choisir une date.'); return; }
+  try {
+    setSyncStatus('syncing');
+    // Générer la facture
+    const num = 'FAC-2026-' + String(factureNum).padStart(3, '0');
+    factureNum++;
+    await sb.from('config').upsert([{ id: 'facture_num', valeur: factureNum }]);
+    const { data: fData } = await sb.from('factures').insert([{
+      num, client: nom,
+      prestation: 'Coaching online — ' + mois,
+      montant: abo, date_facture: datePaiement
+    }]).select();
+    if (fData) factures = [...factures, ...fData];
+    // Ajouter en recette
+    const { data: eData } = await sb.from('ecritures').insert([{
+      type: 'recette',
+      libelle: 'Abonnement online — ' + nom + ' — ' + mois,
+      montant: abo, date_ecriture: datePaiement, mois
+    }]).select();
+    if (eData) ecritures = [...ecritures, ...eData];
+    // Sauvegarder l'état payé avec les IDs pour pouvoir supprimer
+    onlineMonthData[mois][nom].paye = true;
+    onlineMonthData[mois][nom].factureId = fData?.[0]?.id;
+    onlineMonthData[mois][nom].ecritureId = eData?.[0]?.id;
+    await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+    setSyncStatus('ok');
+    closeModal('modal-paiement-online');
+    pendingPaiement = null;
+    afficherFacture({ num, client: nom, prestation: 'Coaching online — ' + mois, montant: abo, date_facture: datePaiement });
+    renderOnline(); renderFactures(); renderCompta();
+    // Aller sur l'onglet facturation pour voir la facture
+    switchTab('factures');
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('confirmerPaiement error:', e);
+  }
+}
+
+async function supprimerPaiement(nom, mois) {
+  try {
+    setSyncStatus('syncing');
+    const data = onlineMonthData[mois]?.[nom];
+    // Supprimer la facture par ID si disponible, sinon par client+prestation
+    if (data?.factureId) {
+      await sb.from('factures').delete().eq('id', data.factureId);
+      factures = factures.filter(f => f.id !== data.factureId);
+    } else {
+      // Fallback: supprimer par client et prestation
+      const prestation = 'Coaching online — ' + mois;
+      await sb.from('factures').delete().eq('client', nom).eq('prestation', prestation);
+      factures = factures.filter(f => !(f.client === nom && f.prestation === prestation));
+    }
+    // Supprimer la recette par ID si disponible, sinon par libellé
+    if (data?.ecritureId) {
+      await sb.from('ecritures').delete().eq('id', data.ecritureId);
+      ecritures = ecritures.filter(e => e.id !== data.ecritureId);
+    } else {
+      // Fallback: supprimer par libellé
+      const libelle = 'Abonnement online — ' + nom + ' — ' + mois;
+      await sb.from('ecritures').delete().eq('libelle', libelle);
+      ecritures = ecritures.filter(e => e.libelle !== libelle);
+    }
+    // Remettre à non payé
+    onlineMonthData[mois][nom].paye = false;
+    onlineMonthData[mois][nom].factureId = null;
+    onlineMonthData[mois][nom].ecritureId = null;
+    await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+    setSyncStatus('ok');
+    renderOnline(); renderFactures(); renderCompta();
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('supprimerPaiement error:', e);
+  }
+}
+
+async function updateOnlineAbo(nom, mois, val) {
+  try {
+    if (!onlineMonthData[mois]) initOnlineMonthData(mois);
+    if (!onlineMonthData[mois][nom]) onlineMonthData[mois][nom] = { abo: parseFloat(val)||150, paye: false };
+    onlineMonthData[mois][nom].abo = parseFloat(val) || 0;
+    setSyncStatus('syncing');
+    const { error } = await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+    if (error) throw error;
+    setSyncStatus('ok');
+    renderOnline();
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('updateOnlineAbo error:', e);
+  }
+}
+
+function renderOnline() {
+  const mois = currentOnlineMonth;
+  if (!onlineMonthData[mois]) initOnlineMonthData(mois);
+  const monthData = onlineMonthData[mois];
+  const tbody = document.getElementById('online-tbody');
+  tbody.innerHTML = '';
+  let caEncaisse = 0, caAttente = 0;
+  if (!onlineClients.length) { tbody.innerHTML = '<tr><td colspan="4"><div class="empty">Aucun client online</div></td></tr>'; return; }
+  onlineClients.forEach(c => {
+    // Vérifier que le client a démarré avant ou pendant ce mois
+    const moisDepart = c.mois_depart || TOUS_MOIS[0];
+    const idxDepart = TOUS_MOIS.indexOf(moisDepart);
+    const idxMoisActuel = TOUS_MOIS.indexOf(mois);
+    if (idxMoisActuel < idxDepart) return; // Pas encore démarré
+
+    const data = monthData[c.nom] || { abo: c.abo, paye: false };
+    if (data.paye) caEncaisse += data.abo; else caAttente += data.abo;
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:500">${c.nom}</td>
+      <td><input type="number" value="${data.abo}" style="width:70px;text-align:right;padding:3px 6px;font-size:12px;font-family:'DM Mono',monospace;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);"
+        onchange="updateOnlineAbo('${c.nom}','${mois}',this.value)"> CHF</td>
+      <td><span class="badge ${data.paye ? 'b-ok' : 'b-warn'}">${data.paye ? 'Payé' : 'En attente'}</span></td>
+      <td>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" ${data.paye ? 'checked' : ''} 
+            data-nom="${c.nom}" data-mois="${mois}"
+            onchange="togglePaiement('${c.nom}','${mois}')"
+            style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);">
+          <span style="font-size:12px;color:var(--text-2)">${data.paye ? 'Reçu ✓' : 'Confirmer'}</span>
+        </label>
+      </td>
+      <td style="padding:3px 4px">
+        <input type="text" value="${data.commentaire || ''}" placeholder="Ex: Pause vacances..."
+          style="width:100%;padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);"
+          onchange="updateOnlineCommentaire('${c.nom}','${mois}',this.value)">
+      </td>
+      <td style="display:flex;gap:4px;align-items:center;">
+        <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="archiverClientOnline('${c.nom}')">Archiver</button>
+        ${!data.paye ? `<button class="btn-sm" style="background:${data.alerte ? 'var(--warn)' : 'transparent'};color:${data.alerte ? 'white' : 'var(--warn)'};border-color:var(--warn);font-size:10px;" onclick="toggleAlerte('${c.nom}','${mois}')" title="Marquer comme relancé">${data.alerte ? '🔔 Relancé' : '🔔'}</button>` : ''}
+      </td>
+    </tr>`;
+  });
+  document.getElementById('nb-online').textContent = onlineClients.length;
+  document.getElementById('ca-online').textContent = fmt(caEncaisse) + ' CHF';
+  document.getElementById('ca-attente').textContent = fmt(caAttente) + ' CHF';
+  renderOnlineMonthBar();
+}
+
+function renderCompta() {
+  const tbody = document.getElementById('compta-tbody');
+  tbody.innerHTML = '';
+  let ca = 0, dep = 0;
+  ecritures.forEach(e => { if (e.type === 'recette') ca += e.montant; else dep += e.montant; });
+  const dernierMois = moisActifs[moisActifs.length - 1];
+  const caMois = ecritures.filter(e => e.mois === dernierMois && e.type === 'recette').reduce((s, e) => s + e.montant, 0);
+  const depMois = ecritures.filter(e => e.mois === dernierMois && e.type === 'depense').reduce((s, e) => s + e.montant, 0);
+  const filtered = comptaFilter === 'tous' ? ecritures : ecritures.filter(e => e.type === comptaFilter);
+  [...filtered].reverse().forEach(e => {
+    tbody.innerHTML += `<tr>
+      <td>${e.date_ecriture}</td>
+      <td title="${e.libelle}" style="overflow:hidden;text-overflow:ellipsis;max-width:200px">${e.libelle}</td>
+      <td style="font-weight:500;color:${e.type==='recette'?'var(--accent)':'var(--danger)'}">${e.type==='recette'?'+':'-'}${fmt(e.montant)}</td>
+      <td><span class="badge ${e.type==='recette'?'b-ok':'b-warn'}">${e.type==='recette'?'Recette':'Dépense'}</span></td>
+    </tr>`;
+  });
+  const pct = Math.min(100, Math.round((ca / PLAFOND) * 100));
+  document.getElementById('ca-total').textContent = fmt(ca) + ' CHF';
+  document.getElementById('dep-total').textContent = fmt(dep) + ' CHF';
+  document.getElementById('ben-total').textContent = fmt(ca - dep) + ' CHF';
+  document.getElementById('ben-mois').textContent = fmt(caMois - depMois) + ' CHF';
+  document.getElementById('ben-mois-lbl').textContent = dernierMois;
+  document.getElementById('ca-pct').textContent = pct + '% du plafond';
+  const bar = document.getElementById('ca-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct > 85 ? 'var(--danger)' : pct > 60 ? 'var(--warn)' : 'var(--accent)';
+}
+
+function renderFixes() {
+  const tbody = document.getElementById('fixes-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  let tot = 0;
+  DEPS_REF.forEach((d, i) => {
+    const montant = Number(d.montant) || 0;
+    tot += montant;
+    tbody.innerHTML += `<tr>
+      <td>${d.desc}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${montant.toFixed(2)} CHF</td>
+      <td style="padding:2px 4px"><button class="btn-sm" style="color:var(--danger);border-color:var(--danger);font-size:10px" onclick="supprimerFixe(${i})" title="Supprimer">✕</button></td>
+    </tr>`;
+  });
+  tbody.innerHTML += `<tr><td style="font-weight:500;border-top:1px solid var(--border)">Total référence</td><td style="font-weight:500;font-family:'DM Mono',monospace;font-size:12px;border-top:1px solid var(--border)">${tot.toFixed(2)} CHF</td><td style="border-top:1px solid var(--border)"></td></tr>`;
+}
+
+function renderFactures() {
+  const tbody = document.getElementById('fhist-tbody');
+  if (!factures.length) { tbody.innerHTML = '<tr><td colspan="4"><div class="empty">Aucune facture émise</div></td></tr>'; return; }
+  tbody.innerHTML = '';
+  [...factures].sort((a, b) => new Date(b.date_facture) - new Date(a.date_facture)).forEach(f => {
+    tbody.innerHTML += `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${f.num}</td>
+      <td style="font-weight:500">${f.client}</td>
+      <td>${fmt(f.montant)} CHF</td>
+      <td>${f.date_facture}</td>
+      <td style="font-size:11px;color:var(--text-2);font-style:italic">${f.commentaire || ''}</td>
+      <td><button class="btn-sm" onclick="ouvrirEditionFacture('${f.id}')">✏️</button></td>
+    </tr>`;
+  });
+  // Update facture select
+  const sel = document.getElementById('f-client');
+  sel.innerHTML = '<option value="">— Sélectionner —</option>';
+  [...packs.map(p => p.nom), ...onlineClients.map(c => c.nom)].forEach(n => sel.innerHTML += `<option>${n}</option>`);
+}
+
+// ─── ACTIONS ───────────────────────────────────────────────────────────────
+function filterCompta(type, el) {
+  comptaFilter = type;
+  document.querySelectorAll('.ttab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderCompta();
+}
+
+function ouvrirRenouvellement(nom) {
+  selectedPackNom = nom;
+  const p = packs.find(p => p.nom === nom);
+  const faites = calcFaitesTotal(nom);
+  document.getElementById('renouv-title').textContent = 'Renouveler — ' + nom;
+  const soldeActuel = calcSolde(p);
+  document.getElementById('renouv-info').innerHTML = `Total acheté : <strong>${p.total_achete || p.pack} séances</strong> — Faites : <strong>${faites}</strong><br>Solde actuel : <strong style="color:${soldeActuel < 0 ? 'var(--danger)' : 'var(--accent)'}">${soldeActuel > 0 ? '+' : ''}${soldeActuel} séances</strong>`;
+  document.getElementById('rn-nb').value = p.pack;
+  document.getElementById('rn-prix').value = p.prix;
+  document.getElementById('rn-date').value = today();
+  openModal('modal-renouv');
+}
+
+async function confirmerRenouvellement() {
+  const p = packs.find(p => p.nom === selectedPackNom);
+  if (!p) return;
+  const faites = calcFaitesTotal(p.nom);
+  const nbNouv = parseInt(document.getElementById('rn-nb').value) || 10;
+  const prixNouv = parseFloat(document.getElementById('rn-prix').value) || 0;
+  const date = document.getElementById('rn-date').value;
+  setSyncStatus('syncing');
+  // Archiver dans historique
+  const newHist = [...(p.historique || []), { pack: nbNouv, prix: prixNouv, faites, total_achete: p.total_achete, date }];
+  // Incrémenter total_achete du nombre de séances du nouveau pack
+  const newTotalAchete = (p.total_achete || 0) + nbNouv;
+  // Mettre à jour pack_blocs pour le suivi des tailles de pack
+  const currentBlocs = p.pack_blocs || [];
+  let newBlocs;
+  if (currentBlocs.length > 0) {
+    const lastBloc = currentBlocs[currentBlocs.length - 1];
+    if (lastBloc.size === nbNouv) {
+      // Même taille : incrémenter le count du dernier bloc
+      newBlocs = [...currentBlocs.slice(0, -1), { size: nbNouv, count: lastBloc.count + 1 }];
+    } else {
+      // Nouvelle taille : ajouter un nouveau bloc
+      newBlocs = [...currentBlocs, { size: nbNouv, count: 1 }];
+    }
+  } else {
+    // Premier renouvellement : créer les blocs depuis le pack initial
+    newBlocs = [{ size: Number(p.pack), count: 1 }, { size: nbNouv, count: 1 }];
+  }
+
+  await sb.from('packs').update({ 
+    pack: nbNouv, 
+    prix: prixNouv, 
+    historique: newHist,
+    total_achete: newTotalAchete,
+    pack_blocs: newBlocs
+  }).eq('id', p.id);
+  p.pack = nbNouv; p.prix = prixNouv; p.historique = newHist; p.total_achete = newTotalAchete; p.pack_blocs = newBlocs;
+  // Les séances restent intactes pour l'historique
+  // Facture auto
+  const num = 'FAC-2026-' + String(factureNum).padStart(3, '0');
+  factureNum++;
+  await sb.from('config').upsert([{ id: 'facture_num', valeur: factureNum }]);
+  const { data: fData } = await sb.from('factures').insert([{ num, client: p.nom, prestation: `Pack ${nbNouv} séances coaching`, montant: prixNouv, date_facture: date }]).select();
+  if (fData) factures = [...factures, ...fData];
+  // Recette compta
+  const { data: eData } = await sb.from('ecritures').insert([{ type: 'recette', libelle: `Renouvellement pack — ${p.nom}`, montant: prixNouv, date_ecriture: date, mois: currentMonth }]).select();
+  if (eData) ecritures = [...ecritures, ...eData];
+  setSyncStatus('ok');
+  closeModal('modal-renouv');
+  afficherFacture({ num, client: p.nom, prestation: `Pack ${nbNouv} séances coaching`, montant: prixNouv, date_facture: date });
+  renderAll();
+  switchTab('factures');
+}
+
+function voirHistorique(nom) {
+  const p = packs.find(p => p.nom === nom);
+  document.getElementById('hist-title').textContent = 'Historique — ' + nom;
+  const list = document.getElementById('hist-list');
+  list.innerHTML = '';
+  if (!p.historique || !p.historique.length) { list.innerHTML = '<div class="empty">Aucun historique</div>'; }
+  else {
+    [...p.historique].reverse().forEach(h => {
+      list.innerHTML += `<div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:13px">
+        <div><div style="font-weight:500">${h.pack} séances — ${h.prix} CHF</div><div style="font-size:11px;color:var(--text-3)">${h.faites} réalisées · Renouvelé le ${h.date}</div></div>
+        <span class="badge b-gray">Archivé</span>
+      </div>`;
+    });
+  }
+  document.getElementById('hist-card').style.display = 'block';
+  document.getElementById('hist-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function ouvrirNouveauMois() {
+  const dispo = TOUS_MOIS.filter(m => !moisActifs.includes(m) && TOUS_MOIS.indexOf(m) > TOUS_MOIS.indexOf(moisActifs[moisActifs.length - 1]));
+  if (!dispo.length) { alert('Tous les mois sont créés.'); return; }
+  const sel = document.getElementById('nm-mois');
+  sel.innerHTML = '';
+  dispo.forEach(m => sel.innerHTML += `<option>${m}</option>`);
+  document.getElementById('nm-title').textContent = 'Nouveau mois — ' + dispo[0];
+  sel.onchange = function() { document.getElementById('nm-title').textContent = 'Nouveau mois — ' + this.value; };
+  // Render relecture
+  const container = document.getElementById('dep-relecture');
+  container.innerHTML = '';
+  DEPS_REF.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'dep-row';
+    row.innerHTML = `<span class="dep-label">${d.desc}</span><input class="dep-inp" id="drl-${i}" type="number" step="0.01" value="${d.montant.toFixed(2)}" oninput="updateRelTotal()"><span style="font-size:11px;color:var(--text-3)">CHF</span>`;
+    container.appendChild(row);
+  });
+  updateRelTotal();
+  openModal('modal-nouveau-mois');
+}
+
+function updateRelTotal() {
+  let tot = 0;
+  DEPS_REF.forEach((d, i) => {
+    const el = document.getElementById('drl-' + i);
+    if (el) { const v = parseFloat(el.value) || 0; tot += v; el.classList.toggle('changed', Math.abs(v - d.montant) > 0.01); }
+  });
+  document.getElementById('dep-rel-total').textContent = tot.toFixed(2) + ' CHF';
+}
+
+async function confirmerNouveauMois() {
+  const mois = document.getElementById('nm-mois').value;
+  if (moisActifs.includes(mois)) return;
+  setSyncStatus('syncing');
+  const dernier = moisActifs[moisActifs.length - 1];
+  const clientsDernier = seances.filter(s => s.mois === dernier);
+  // Créer séances vides pour le nouveau mois
+  const newSeances = clientsDernier.map(s => ({ mois, nom: s.nom, prix: s.prix, s: [null,null,null,null,null] }));
+  const { data: sData } = await sb.from('seances').insert(newSeances).select();
+  if (sData) seances = [...seances, ...sData];
+  // Injecter dépenses avec montants de la relecture
+  const newDeps = DEPS_REF.map((d, i) => {
+    const el = document.getElementById('drl-' + i);
+    const montant = el ? parseFloat(el.value) || 0 : d.montant;
+    return { type: 'depense', libelle: d.desc, montant, date_ecriture: MOIS_DATES[mois] || mois, mois };
+  });
+  const { data: eData } = await sb.from('ecritures').insert(newDeps).select();
+  if (eData) ecritures = [...ecritures, ...eData];
+  // Mettre à jour config
+  moisActifs = [...moisActifs, mois].sort((a, b) => TOUS_MOIS.indexOf(a) - TOUS_MOIS.indexOf(b));
+  await sb.from('config').upsert([{ id: 'mois_actifs', valeur: moisActifs }]);
+  currentMonth = mois;
+  currentOnlineMonth = mois;
+  // Initialiser les données online pour ce mois (copier abos du mois précédent)
+  const dernierOnline = onlineMonthData[dernier] || {};
+  onlineMonthData[mois] = {};
+  onlineClients.forEach(c => {
+    const prevData = dernierOnline[c.nom] || { abo: c.abo };
+    onlineMonthData[mois][c.nom] = { abo: prevData.abo, paye: false };
+  });
+  await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+  setSyncStatus('ok');
+  closeModal('modal-nouveau-mois');
+  renderMonthBar(); renderPres(); renderCompta(); renderOnline();
+}
+
+function openModalLigne() {
+  const sel = document.getElementById('ll-client');
+  sel.innerHTML = '';
+  const clients = [...new Set(seances.filter(s => s.mois === currentMonth).map(s => s.nom))];
+  clients.forEach(nom => { const o = document.createElement('option'); o.value = nom; o.textContent = nom; sel.appendChild(o); });
+  if (!clients.length) { alert('Aucun client actif ce mois.'); return; }
+  openModal('modal-ligne');
+}
+
+async function supprimerFixe(index) {
+  if (!confirm('Supprimer "' + DEPS_REF[index].desc + '" des charges fixes ?')) return;
+  DEPS_REF = DEPS_REF.filter((_, i) => i !== index);
+  setSyncStatus('syncing');
+  await sb.from('config').upsert([{ id: 'deps_ref', valeur: DEPS_REF }]);
+  setSyncStatus('ok');
+  renderFixes();
+}
+
+async function confirmerAddLigne() {
+  const nom = document.getElementById('ll-client').value;
+  const prix = parseFloat(document.getElementById('ll-prix').value) || 0;
+  if (!nom || !prix) { alert('Client et prix requis.'); return; }
+  setSyncStatus('syncing');
+  const { data } = await sb.from('seances').insert([{ mois: currentMonth, nom, prix, s: [null,null,null,null,null] }]).select();
+  if (data) seances = [...seances, ...data];
+  setSyncStatus('ok');
+  closeModal('modal-ligne');
+  renderPres();
+}
+
+async function addPresClient() {
+  const nom = document.getElementById('p-nom').value.trim();
+  const prix = parseFloat(document.getElementById('p-prix').value) || 100;
+  if (!nom) return;
+  setSyncStatus('syncing');
+  const newRows = moisActifs.map(m => ({ mois: m, nom, prix, s: [0,0,0,0,0] }));
+  const { data } = await sb.from('seances').insert(newRows).select();
+  if (data) seances = [...seances, ...data];
+  setSyncStatus('ok');
+  closeModal('modal-pres');
+  document.getElementById('p-nom').value = '';
+  renderPres(); renderPacks();
+}
+
+let editingFactureId = null;
+
+function ouvrirEditionFacture(id) {
+  const f = factures.find(f => String(f.id) === String(id));
+  if (!f) return;
+  editingFactureId = id;
+  document.getElementById('edit-facture-info').innerHTML = 
+    'Facture : <strong>' + f.num + '</strong> — ' + f.client;
+  document.getElementById('ef-montant').value = f.montant;
+  document.getElementById('ef-date').value = f.date_facture;
+  document.getElementById('ef-prestation').value = f.prestation || '';
+  document.getElementById('ef-commentaire').value = f.commentaire || '';
+  openModal('modal-edit-facture');
+}
+
+async function sauvegarderFacture() {
+  if (!editingFactureId) return;
+  const montant = parseFloat(document.getElementById('ef-montant').value) || 0;
+  const date = document.getElementById('ef-date').value;
+  const prestation = document.getElementById('ef-prestation').value.trim();
+  const commentaire = document.getElementById('ef-commentaire').value.trim();
+  try {
+    setSyncStatus('syncing');
+    await sb.from('factures').update({ montant, date_facture: date, prestation, commentaire }).eq('id', editingFactureId);
+    const idx = factures.findIndex(f => String(f.id) === String(editingFactureId));
+    if (idx >= 0) { factures[idx].montant = montant; factures[idx].date_facture = date; factures[idx].prestation = prestation; factures[idx].commentaire = commentaire; }
+    setSyncStatus('ok');
+    closeModal('modal-edit-facture');
+    editingFactureId = null;
+    renderFactures();
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('sauvegarderFacture error:', e);
+  }
+}
+
+// ── Ajouter un client dans l'onglet Packs ──
+async function confirmerAddPackClient() {
+  const nom = document.getElementById('ap-nom').value.trim();
+  const pack = parseInt(document.getElementById('ap-pack').value) || 10;
+  const prix = parseFloat(document.getElementById('ap-prix').value) || 0;
+  const date = document.getElementById('ap-date').value;
+  if (!nom || !prix || !date) { alert('Merci de remplir tous les champs.'); return; }
+  setSyncStatus('syncing');
+  // Ajouter dans packs
+  const { data: pData } = await sb.from('packs').insert([{
+    nom, pack, prix, total_achete: pack, historique: []
+  }]).select();
+  if (pData) packs = [...packs, ...pData];
+  // Ajouter ligne séances pour le mois courant
+  const { data: sData } = await sb.from('seances').insert([{
+    nom, mois: currentMonth, prix: Math.round((prix / pack) * 100) / 100, s: [null,null,null,null,null]
+  }]).select();
+  if (sData) seances = [...seances, ...sData];
+  setSyncStatus('ok');
+  closeModal('modal-add-pack');
+  document.getElementById('ap-nom').value = '';
+  renderPacks(); renderPres();
+}
+
+// ── Supprimer un client (archive le pack, garde l'historique) ──
+async function supprimerClientPack(nom) {
+  if (!confirm(`Supprimer ${nom} des packs actifs ? Son historique de séances passées sera conservé.`)) return;
+  setSyncStatus('syncing');
+  // Archiver le pack
+  await sb.from('packs').update({ archive: true }).eq('nom', nom);
+  const p = packs.find(pk => pk.nom === nom);
+  if (p) p.archive = true;
+  // Supprimer la ligne séances du mois courant uniquement
+  const lignesActuelles = seances.filter(s => s.nom === nom && s.mois === currentMonth);
+  for (const s of lignesActuelles) {
+    await sb.from('seances').delete().eq('id', s.id);
+  }
+  seances = seances.filter(s => !(s.nom === nom && s.mois === currentMonth));
+  setSyncStatus('ok');
+  renderPacks(); renderPres();
+}
+
+// ── Annuler le dernier renouvellement ──
+async function annulerDernierRenouvellement(nom) {
+  const p = packs.find(pk => pk.nom === nom);
+  if (!p || !p.historique || !p.historique.length) return;
+  const dernierRenouv = p.historique[p.historique.length - 1];
+  if (!confirm(`Annuler le renouvellement du ${dernierRenouv.date} (${dernierRenouv.pack} séances à ${dernierRenouv.prix} CHF) ?`)) return;
+  setSyncStatus('syncing');
+  // Restaurer l'état précédent
+  const newHist = p.historique.slice(0, -1);
+  const newTotalAchete = (p.total_achete || 0) - dernierRenouv.pack;
+  const prevPack = newHist.length ? newHist[newHist.length-1] : { pack: dernierRenouv.pack, prix: dernierRenouv.prix };
+  // Mettre à jour pack_blocs
+  const newBlocs = (p.pack_blocs || []).slice(0, -1);
+  await sb.from('packs').update({
+    pack: prevPack.pack,
+    prix: prevPack.prix,
+    historique: newHist,
+    total_achete: newTotalAchete,
+    pack_blocs: newBlocs
+  }).eq('id', p.id);
+  p.pack = prevPack.pack; p.prix = prevPack.prix;
+  p.historique = newHist; p.total_achete = newTotalAchete; p.pack_blocs = newBlocs;
+  // Supprimer la facture associée au renouvellement
+  const factureLiee = factures.find(f => 
+    f.client === nom && 
+    f.date_facture === dernierRenouv.date &&
+    Number(f.montant) === Number(dernierRenouv.prix)
+  );
+  if (factureLiee) {
+    await sb.from('factures').delete().eq('id', factureLiee.id);
+    factures = factures.filter(f => f.id !== factureLiee.id);
+  }
+  setSyncStatus('ok');
+  renderPacks();
+  renderFactures();
+}
+
+async function archiverPackClient(nom) {
+  if (!confirm('Archiver ' + nom + ' ? Le client sera retiré des packs actifs mais son historique sera conservé.')) return;
+  try {
+    setSyncStatus('syncing');
+    const client = packs.find(p => p.nom === nom);
+    if (client) {
+      // Marquer comme archivé dans Supabase
+      await sb.from('packs').update({ archive: true }).eq('id', client.id);
+      // Retirer de la liste locale
+      packs = packs.filter(p => p.nom !== nom);
+    }
+    setSyncStatus('ok');
+    renderPacks();
+    renderCompta();
+  } catch(e) {
+    setSyncStatus('error');
+    console.error('archiverPackClient error:', e);
+  }
+}
+
+async function archiverClientOnline(nom) {
+  if (!confirm('Archiver ' + nom + ' ? Il ne sera plus dans les nouveaux mois.')) return;
+  setSyncStatus('syncing');
+  // Supprimer de la liste des clients actifs
+  const client = onlineClients.find(c => c.nom === nom);
+  if (client) {
+    await sb.from('online_clients').delete().eq('id', client.id);
+    onlineClients = onlineClients.filter(c => c.nom !== nom);
+  }
+  // Retirer des mois futurs non payés
+  moisActifs.forEach(m => {
+    if (onlineMonthData[m]?.[nom] && !onlineMonthData[m][nom].paye) {
+      delete onlineMonthData[m][nom];
+    }
+  });
+  await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+  setSyncStatus('ok');
+  renderOnline();
+}
+
+async function addOnlineClient() {
+  const nom = document.getElementById('o-nom').value.trim();
+  const abo = parseFloat(document.getElementById('o-abo').value) || 150;
+  const moisDepart = document.getElementById('o-mois-depart').value || moisActifs[moisActifs.length - 1];
+  if (!nom) return;
+  setSyncStatus('syncing');
+  const { data } = await sb.from('online_clients').insert([{ nom, abo, mois_depart: moisDepart }]).select();
+  if (data) onlineClients = [...onlineClients, ...data];
+  // Init uniquement à partir du mois de départ choisi
+  const idxDepart = TOUS_MOIS.indexOf(moisDepart);
+  moisActifs.forEach(m => {
+    const idx = TOUS_MOIS.indexOf(m);
+    if (idx >= idxDepart) {
+      if (!onlineMonthData[m]) onlineMonthData[m] = {};
+      onlineMonthData[m][nom] = { abo, paye: false };
+    }
+    // Ne pas ajouter aux mois précédents
+  });
+  await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+  setSyncStatus('ok');
+  closeModal('modal-online');
+  document.getElementById('o-nom').value = '';
+  renderOnline();
+}
+
+async function addRecette() {
+  const libelle = document.getElementById('r-desc').value.trim();
+  const montant = parseFloat(document.getElementById('r-mont').value) || 0;
+  const date_ecriture = document.getElementById('r-date').value;
+  if (!libelle || !montant || !date_ecriture) return;
+  setSyncStatus('syncing');
+  const { data } = await sb.from('ecritures').insert([{ type: 'recette', libelle, montant, date_ecriture, mois: currentMonth }]).select();
+  if (data) ecritures = [...ecritures, ...data];
+  setSyncStatus('ok');
+  closeModal('modal-recette');
+  document.getElementById('r-desc').value = ''; document.getElementById('r-mont').value = '';
+  renderCompta();
+}
+
+async function addDepense() {
+  const libelle = document.getElementById('d-desc').value.trim();
+  const montant = parseFloat(document.getElementById('d-mont').value) || 0;
+  const date_ecriture = document.getElementById('d-date').value;
+  if (!libelle || !montant || !date_ecriture) return;
+  setSyncStatus('syncing');
+  const { data } = await sb.from('ecritures').insert([{ type: 'depense', libelle, montant, date_ecriture, mois: currentMonth }]).select();
+  if (data) ecritures = [...ecritures, ...data];
+  setSyncStatus('ok');
+  closeModal('modal-depense');
+  document.getElementById('d-desc').value = ''; document.getElementById('d-mont').value = '';
+  renderCompta();
+}
+
+async function genFacture() {
+  const client = document.getElementById('f-client').value;
+  const prestation = document.getElementById('f-prest').value;
+  const montant = parseFloat(document.getElementById('f-mont').value) || 0;
+  const date_facture = document.getElementById('f-date').value;
+  if (!client || !prestation || !montant || !date_facture) { alert('Merci de remplir tous les champs.'); return; }
+  const num = 'FAC-2026-' + String(factureNum).padStart(3, '0');
+  factureNum++;
+  setSyncStatus('syncing');
+  await sb.from('config').upsert([{ id: 'facture_num', valeur: factureNum }]);
+  const { data } = await sb.from('factures').insert([{ num, client, prestation, montant, date_facture }]).select();
+  if (data) factures = [...factures, ...data];
+  setSyncStatus('ok');
+  afficherFacture({ num, client, prestation, montant, date_facture });
+  renderFactures();
+}
+
+function afficherFacture(f) {
+  document.getElementById('f-num').textContent = f.num;
+  document.getElementById('f-content').innerHTML = `
+    <div class="inv-row"><span style="color:var(--text-3)">Prestataire</span><span>Stevens Jerent — Stevens Coaching</span></div>
+    <div class="inv-row"><span style="color:var(--text-3)">N° IDE / AVS</span><span>CHE-321.436.600</span></div>
+    <div class="inv-row"><span style="color:var(--text-3)">Client</span><span>${f.client}</span></div>
+    <div class="inv-row"><span style="color:var(--text-3)">Prestation</span><span>${f.prestation}</span></div>
+    <div class="inv-row"><span style="color:var(--text-3)">Date</span><span>${f.date_facture}</span></div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:8px">Non assujetti à la TVA</div>
+    <div class="inv-total"><span>Total</span><span>${fmt(f.montant)} CHF</span></div>`;
+  document.getElementById('f-preview').style.display = 'block';
+}
+
+// ─── UI HELPERS ────────────────────────────────────────────────────────────
+
+function renderCA() {
+  const tbody = document.getElementById('ca-tbody');
+  const totauxDiv = document.getElementById('ca-totaux');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const MOIS_ORDRE = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  let totalRecettesAn = 0, totalDepensesAn = 0, totalSeancesAn = 0, totalCAPresAn = 0, totalCAOnlineAn = 0;
+
+  MOIS_ORDRE.forEach(mois => {
+    // Séances faites (volume)
+    const moisIdx = MOIS_ORDRE.indexOf(mois);
+    const seancesMois = seancesV2.filter(s => {
+      const d = new Date(s.date_seance);
+      return d.getMonth() === moisIdx && d.getFullYear() === 2026;
+    });
+    const nbSeances = seancesMois.length;
+
+    // CA depuis ecritures (source de vérité)
+    const recettesMois = ecritures.filter(e => e.mois === mois && e.type === 'recette');
+    const caPres = recettesMois
+      .filter(e => !e.libelle || !e.libelle.toLowerCase().includes('online'))
+      .reduce((sum, e) => sum + Number(e.montant || 0), 0);
+    const caOnline = recettesMois
+      .filter(e => e.libelle && e.libelle.toLowerCase().includes('online'))
+      .reduce((sum, e) => sum + Number(e.montant || 0), 0);
+    // Nombre de clients online actifs ce mois (depuis onlineMonthData)
+    const monthOnlineData = onlineMonthData[mois] || {};
+    const nbOnline = Object.keys(monthOnlineData).filter(nom => {
+      const c = onlineClients.find(cl => cl.nom === nom);
+      const moisDepart = c ? (c.mois_depart || TOUS_MOIS[0]) : TOUS_MOIS[0];
+      return TOUS_MOIS.indexOf(mois) >= TOUS_MOIS.indexOf(moisDepart);
+    }).length;
+    const totalRec = caPres + caOnline;
+
+    // Dépenses depuis ecritures
+    const depensesMois = ecritures.filter(e => e.mois === mois && e.type === 'depense');
+    const totalDep = depensesMois.reduce((sum, e) => sum + Number(e.montant || 0), 0);
+
+    const net = totalRec - totalDep;
+    if (nbSeances === 0 && totalRec === 0 && totalDep === 0) return;
+
+    totalSeancesAn += nbSeances;
+    totalCAPresAn += caPres;
+    totalCAOnlineAn += caOnline;
+    totalRecettesAn += totalRec;
+    totalDepensesAn += totalDep;
+
+    const netCol = net >= 0 ? '#1D9E75' : 'var(--danger)';
+    tbody.innerHTML += `<tr>
+      <td style="font-weight:500">${mois}</td>
+      <td style="color:var(--text-3)">${nbSeances}</td>
+      <td style="font-family:monospace;font-size:12px">${fmt(caPres)} CHF</td>
+      <td style="color:var(--text-3)">${nbOnline}</td>
+      <td style="font-family:monospace;font-size:12px">${fmt(caOnline)} CHF</td>
+      <td style="font-weight:500;font-family:monospace;font-size:12px">${fmt(totalRec)} CHF</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--danger)">${fmt(totalDep)} CHF</td>
+      <td style="font-weight:500;font-family:monospace;font-size:12px;color:${netCol}">${net >= 0 ? '+' : ''}${fmt(net)} CHF</td>
+    </tr>`;
+  });
+
+  const netAn = totalRecettesAn - totalDepensesAn;
+  const netAnCol = netAn >= 0 ? '#1D9E75' : 'var(--danger)';
+  tbody.innerHTML += `<tr style="background:var(--surface-2,#f5f5f0);font-weight:500;border-top:2px solid var(--border)">
+    <td>Total 2026</td>
+    <td style="color:var(--text-3)">${totalSeancesAn}</td>
+    <td style="font-family:monospace;font-size:12px">${fmt(totalCAPresAn)} CHF</td>
+    <td>—</td>
+    <td style="font-family:monospace;font-size:12px">${fmt(totalCAOnlineAn)} CHF</td>
+    <td style="font-family:monospace;font-size:12px">${fmt(totalRecettesAn)} CHF</td>
+    <td style="font-family:monospace;font-size:12px;color:var(--danger)">${fmt(totalDepensesAn)} CHF</td>
+    <td style="font-family:monospace;font-size:12px;color:${netAnCol}">${netAn >= 0 ? '+' : ''}${fmt(netAn)} CHF</td>
+  </tr>`;
+
+  if (totauxDiv) {
+    totauxDiv.innerHTML =
+      `<div style="font-size:12px;color:var(--text-3)">Total recettes : <strong style="color:var(--text)">${fmt(totalRecettesAn)} CHF</strong></div>` +
+      `<div style="font-size:12px;color:var(--text-3)">Total dépenses : <strong style="color:var(--danger)">${fmt(totalDepensesAn)} CHF</strong></div>` +
+      `<div style="font-size:12px;padding:4px 10px;background:${netAn>=0?'#E1F5EE':'#FCE8E8'};border-radius:6px">Bénéfice net : <strong style="color:${netAn>=0?'#0F6E56':'var(--danger)'}">${netAn>=0?'+':''}${fmt(netAn)} CHF</strong></div>`;
+  }
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['packs','seances','online','compta','ca','factures'][i] === id);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (id === 'factures') renderFactures();
+  if (id === 'packs') renderPacks();
+  if (id === 'online') { currentOnlineMonth = currentMonth; renderOnline(); }
+  if (id === 'ca') renderCA();
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  // Populate mois de départ select for online client modal
+  if (id === 'modal-online') {
+    const sel = document.getElementById('o-mois-depart');
+    if (sel) {
+      sel.innerHTML = '';
+      moisActifs.forEach(m => sel.innerHTML += `<option value="${m}">${m}</option>`);
+      sel.value = moisActifs[moisActifs.length - 1]; // default = dernier mois actif
+    }
+  }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function today() { return new Date().toISOString().split('T')[0]; }
+
+document.querySelectorAll('.overlay').forEach(m => m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); }));
+['r-date','d-date','f-date','rn-date'].forEach(id => { const el = document.getElementById(id); if (el) el.value = today(); });
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+loadAll();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+<!-- deploy30:2026-07-09T17:26:48.116105 2026-07-09T17:26:33.150589 2026-07-09T17:19:45.322763 2026-07-09T16:57:42.803419 2026-07-09T16:00:51.831679 2026-07-09T15:55:41.181533 2026-07-09T15:50:20.824999 2026-07-09T15:40:22.716387 2026-07-09T15:37:27.245811 2026-07-09T15:33:46.192936 2026-07-09T15:22:47.002331 2026-07-09T15:22:35.264427 2026-07-09T15:18:56.445171 2026-07-09T15:14:22.800189 2026-07-09T14:59:24.569142 2026-07-09T14:57:32.762201 2026-07-09T14:57:09.324464 2026-07-09T14:55:47.759129 2026-07-09T14:51:40.805143 2026-07-09T14:47:01.854931 2026-07-09T14:32:04.685787 2026-07-09T14:23:26.257224 2026-07-09T07:23:08.313046 2026-07-09T06:47:05.860834 2026-07-09T06:36:00.529479 2026-07-09T06:31:57.706758 2026-07-08T08:32:07.867121 2026-07-08T07:02:42.206248 2026-07-07T09:53:11.188451 2026-07-07T09:40:15.432965 2026-07-07T09:36:23.808465 replaced:2026-07-07T09:33:45.566012 -->
+</html>
