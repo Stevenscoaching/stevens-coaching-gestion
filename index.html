@@ -1455,7 +1455,9 @@ async function confirmerRenouvellement() {
   const { data: fData } = await sb.from('factures').insert([{ num, client: p.nom, prestation: `Pack ${nbNouv} séances coaching`, montant: prixNouv, date_facture: date }]).select();
   if (fData) factures = [...factures, ...fData];
   // Recette compta
-  const { data: eData } = await sb.from('ecritures').insert([{ type: 'recette', libelle: `Renouvellement pack — ${p.nom}`, montant: prixNouv, date_ecriture: date, mois: currentMonth }]).select();
+  const MOIS_NOM = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const moisEcriture = MOIS_NOM[new Date(date).getMonth()];
+  const { data: eData } = await sb.from('ecritures').insert([{ type: 'recette', libelle: `Renouvellement pack — ${p.nom}`, montant: prixNouv, date_ecriture: date, mois: moisEcriture }]).select();
   if (eData) ecritures = [...ecritures, ...eData];
   setSyncStatus('ok');
   closeModal('modal-renouv');
