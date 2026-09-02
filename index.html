@@ -278,6 +278,7 @@ tr:hover td { background: var(--bg); }
       <div style="display:flex;gap:6px">
         <button class="btn" onclick="openModal('modal-recette')">+ Recette</button>
         <button class="btn" onclick="openModal('modal-depense')">+ Dépense</button>
+        <button class="btn" onclick="initDepensesMois()" title="Initialiser les dépenses récurrentes du mois">↺ Dépenses récurrentes</button>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:12px">
@@ -1796,13 +1797,29 @@ async function addRecette() {
   renderCompta();
 }
 
+async function initDepensesMois() {
+  if (!confirm(`Initialiser les dépenses récurrentes pour ${currentMonth} ?`)) return;
+  setSyncStatus('syncing');
+  const MOIS_NOM = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const dateRef = new Date();
+  const dateStr = `${dateRef.getFullYear()}-${String(dateRef.getMonth()+1).padStart(2,'0')}-01`;
+  const rows = DEPS_REF.map(d => ({ type: 'depense', libelle: d.desc, montant: d.montant, date_ecriture: dateStr, mois: currentMonth }));
+  const { data } = await sb.from('ecritures').insert(rows).select();
+  if (data) ecritures = [...ecritures, ...data];
+  setSyncStatus('ok');
+  renderCompta();
+  alert(`${rows.length} dépenses récurrentes ajoutées pour ${currentMonth}`);
+}
+
 async function addDepense() {
   const libelle = document.getElementById('d-desc').value.trim();
   const montant = parseFloat(document.getElementById('d-mont').value) || 0;
   const date_ecriture = document.getElementById('d-date').value;
   if (!libelle || !montant || !date_ecriture) return;
   setSyncStatus('syncing');
-  const { data } = await sb.from('ecritures').insert([{ type: 'depense', libelle, montant, date_ecriture, mois: currentMonth }]).select();
+  const MOIS_NOM = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const moisDepense = MOIS_NOM[new Date(date_ecriture).getMonth()];
+  const { data } = await sb.from('ecritures').insert([{ type: 'depense', libelle, montant, date_ecriture, mois: moisDepense }]).select();
   if (data) ecritures = [...ecritures, ...data];
   setSyncStatus('ok');
   closeModal('modal-depense');
