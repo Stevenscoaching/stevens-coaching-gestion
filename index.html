@@ -1571,7 +1571,7 @@ async function editerFixe(index) {
   if (isNaN(montantParse) || montantParse <= 0) return alert('Montant invalide');
   DEPS_REF[index] = { ...d, montant: montantParse };
   await sb.from('config').upsert([{ id: 'deps_ref', valeur: DEPS_REF }]);
-  renderFacturationTab();
+  renderFixes();
 }
 
 async function supprimerFixe(index) {
