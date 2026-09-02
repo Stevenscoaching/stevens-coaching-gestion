@@ -1798,17 +1798,18 @@ async function addRecette() {
 }
 
 async function initDepensesMois() {
-  if (!confirm(`Initialiser les dépenses récurrentes pour ${currentMonth} ?`)) return;
-  setSyncStatus('syncing');
   const MOIS_NOM = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const dateRef = new Date();
+  const moisReel = MOIS_NOM[dateRef.getMonth()];
   const dateStr = `${dateRef.getFullYear()}-${String(dateRef.getMonth()+1).padStart(2,'0')}-01`;
-  const rows = DEPS_REF.map(d => ({ type: 'depense', libelle: d.desc, montant: d.montant, date_ecriture: dateStr, mois: currentMonth }));
+  if (!confirm(`Initialiser les dépenses récurrentes pour ${moisReel} ?`)) return;
+  setSyncStatus('syncing');
+  const rows = DEPS_REF.map(d => ({ type: 'depense', libelle: d.desc, montant: d.montant, date_ecriture: dateStr, mois: moisReel }));
   const { data } = await sb.from('ecritures').insert(rows).select();
   if (data) ecritures = [...ecritures, ...data];
   setSyncStatus('ok');
   renderCompta();
-  alert(`${rows.length} dépenses récurrentes ajoutées pour ${currentMonth}`);
+  alert(`${rows.length} dépenses récurrentes ajoutées pour ${moisReel}`);
 }
 
 async function addDepense() {
