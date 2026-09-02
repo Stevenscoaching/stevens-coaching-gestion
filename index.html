@@ -1364,7 +1364,10 @@ function renderFixes() {
     tbody.innerHTML += `<tr>
       <td>${d.desc}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px">${montant.toFixed(2)} CHF</td>
-      <td style="padding:2px 4px"><button class="btn-sm" style="color:var(--danger);border-color:var(--danger);font-size:10px" onclick="supprimerFixe(${i})" title="Supprimer">✕</button></td>
+      <td style="padding:2px 4px;display:flex;gap:4px">
+        <button class="btn-sm" style="font-size:10px" onclick="editerFixe(${i})" title="Modifier">✏️</button>
+        <button class="btn-sm" style="color:var(--danger);border-color:var(--danger);font-size:10px" onclick="supprimerFixe(${i})" title="Supprimer">✕</button>
+      </td>
     </tr>`;
   });
   tbody.innerHTML += `<tr><td style="font-weight:500;border-top:1px solid var(--border)">Total référence</td><td style="font-weight:500;font-family:'DM Mono',monospace;font-size:12px;border-top:1px solid var(--border)">${tot.toFixed(2)} CHF</td><td style="border-top:1px solid var(--border)"></td></tr>`;
@@ -1558,6 +1561,17 @@ function openModalLigne() {
   clients.forEach(nom => { const o = document.createElement('option'); o.value = nom; o.textContent = nom; sel.appendChild(o); });
   if (!clients.length) { alert('Aucun client actif ce mois.'); return; }
   openModal('modal-ligne');
+}
+
+async function editerFixe(index) {
+  const d = DEPS_REF[index];
+  const nouveauMontant = prompt(`Modifier le montant de "${d.desc}" :`, Number(d.montant).toFixed(2));
+  if (nouveauMontant === null) return;
+  const montantParse = parseFloat(nouveauMontant.replace(',', '.'));
+  if (isNaN(montantParse) || montantParse <= 0) return alert('Montant invalide');
+  DEPS_REF[index] = { ...d, montant: montantParse };
+  await sb.from('config').upsert([{ id: 'deps_ref', valeur: DEPS_REF }]);
+  renderFacturationTab();
 }
 
 async function supprimerFixe(index) {
