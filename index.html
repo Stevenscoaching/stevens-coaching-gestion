@@ -253,7 +253,7 @@ tr:hover td { background: var(--bg); }
     </div>
     <div class="mbar" id="online-month-bar"></div>
     <table>
-      <thead><tr><th style="width:50%">Client</th><th style="width:30%">Abonnement (CHF/mois)</th><th style="width:20%">Statut</th></tr></thead>
+      <thead><tr><th style="width:30%">Client</th><th style="width:20%">Abonnement (CHF/mois)</th><th style="width:15%">Statut</th><th style="width:10%">Check-ins</th><th style="width:10%">Commentaire</th><th style="width:15%">Actions</th></tr></thead>
       <tbody id="online-tbody"><tr><td colspan="3"><div class="loading"><div class="spinner"></div>Chargement…</div></td></tr></tbody>
     </table>
   </div>
@@ -1312,6 +1312,29 @@ function renderOnline() {
           style="width:100%;padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);"
           onchange="updateOnlineCommentaire('${c.nom}','${mois}',this.value)">
       </td>
+      <td style="position:relative">
+        ${(() => {
+          const checkins = data.checkins || [];
+          const uid = 'ci_' + c.nom.replace(/[^a-z0-9]/gi,'_') + '_' + mois;
+          return `<div style="position:relative;display:inline-block">
+            <button class="btn-sm" onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
+              style="font-size:11px;min-width:36px">
+              📅 ${checkins.length}
+            </button>
+            <div id="${uid}" style="display:none;position:absolute;z-index:100;right:0;top:28px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,0.15)">
+              <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px">CHECK-INS</div>
+              ${checkins.length ? checkins.map((d,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border)">
+                <span style="font-size:12px">${d}</span>
+                <button onclick="supprimerCheckin('${c.nom}','${mois}',${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 4px">✕</button>
+              </div>`).join('') : '<div style="font-size:11px;color:var(--text-3)">Aucun check-in</div>'}
+              <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+                <input type="date" id="date_${uid}" style="font-size:11px;padding:3px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);flex:1">
+                <button class="btn-sm" onclick="ajouterCheckin('${c.nom}','${mois}','${uid}')" style="font-size:11px">+ Ajouter</button>
+              </div>
+            </div>
+          </div>`;
+        })()}
+      </td>
       <td style="display:flex;gap:4px;align-items:center;">
         <button class="btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="archiverClientOnline('${c.nom}')">Archiver</button>
         ${!data.paye ? `<button class="btn-sm" style="background:${data.alerte ? 'var(--warn)' : 'transparent'};color:${data.alerte ? 'white' : 'var(--warn)'};border-color:var(--warn);font-size:10px;" onclick="toggleAlerte('${c.nom}','${mois}')" title="Marquer comme relancé">${data.alerte ? '🔔 Relancé' : '🔔'}</button>` : ''}
@@ -1742,6 +1765,35 @@ async function archiverPackClient(nom) {
     setSyncStatus('error');
     console.error('archiverPackClient error:', e);
   }
+}
+
+async function ajouterCheckin(nom, mois, uid) {
+  const input = document.getElementById('date_' + uid);
+  let dateVal = input.value;
+  if (!dateVal) {
+    // Utiliser la date du jour si rien de saisi
+    const today = new Date();
+    dateVal = today.toISOString().split('T')[0];
+  }
+  const d = new Date(dateVal);
+  const dateStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  const data = onlineMonthData[mois][nom] || { abo: 0, paye: false };
+  const checkins = data.checkins || [];
+  if (checkins.includes(dateStr)) return;
+  checkins.push(dateStr);
+  checkins.sort();
+  onlineMonthData[mois][nom] = { ...data, checkins };
+  await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+  renderOnline();
+}
+
+async function supprimerCheckin(nom, mois, index) {
+  const data = onlineMonthData[mois][nom];
+  if (!data || !data.checkins) return;
+  data.checkins.splice(index, 1);
+  onlineMonthData[mois][nom] = { ...data };
+  await sb.from('config').upsert([{ id: 'online_month_data', valeur: onlineMonthData }]);
+  renderOnline();
 }
 
 async function archiverClientOnline(nom) {
