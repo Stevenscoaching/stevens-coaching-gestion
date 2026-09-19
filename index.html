@@ -148,6 +148,7 @@ tr:hover td { background: var(--bg); }
   <button class="tab" onclick="switchTab('compta')">Comptabilité</button>
   <button class="tab" onclick="switchTab('ca')">CA Mensuel</button>
   <button class="tab" onclick="switchTab('factures')">Facturation</button>
+  <button class="tab" onclick="switchTab('kswiss')">K-Swiss</button>
 </div>
 
 <div class="content">
@@ -355,6 +356,31 @@ tr:hover td { background: var(--bg); }
   </div>
 </div>
 
+<div id="sec-kswiss" class="section">
+  <div class="metrics metrics-3">
+    <div class="metric"><div class="metric-label">Clients actifs</div><div class="metric-value" id="nb-kswiss">—</div></div>
+    <div class="metric"><div class="metric-label">CA mensuel</div><div class="metric-value" id="ca-kswiss">—</div></div>
+    <div class="metric"><div class="metric-label">CA annuel</div><div class="metric-value" id="ca-kswiss-an">—</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0">K-Swiss Coaching</h3>
+    </div>
+    <div id="kswiss-month-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <table class="table" style="width:100%">
+      <thead><tr>
+        <th style="width:25%">Client</th>
+        <th style="width:15%">Mensuel</th>
+        <th style="width:15%">Statut</th>
+        <th style="width:10%">Check-ins</th>
+        <th style="width:20%">Commentaire</th>
+        <th style="width:15%">Actions</th>
+      </tr></thead>
+      <tbody id="kswiss-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 </div><!-- /content -->
 
 <!-- MODALS -->
@@ -546,7 +572,10 @@ let factureNum = 1;
 let initialized = false;
 let reportsDebit = {};
 let currentOnlineMonth = 'Mars';
-let onlineMonthData = {}; // {mois: {clientNom: {abo, paye, factureId, ecritureId}}}
+let onlineMonthData = {};
+let kswissClients = [];
+let kswissMonthData = {};
+let currentKSwissMonth = 'Septembre'; // {mois: {clientNom: {abo, paye, factureId, ecritureId}}}
 let pendingPaiement = null; // {nom, mois, abo} en attente de confirmation // soldes négatifs reportés après renouvellement, stockés en base
 let renewalDates = {}; // date de dernier renouvellement par client
 
@@ -561,13 +590,15 @@ function setSyncStatus(state) {
 async function loadAll() {
   setSyncStatus('syncing');
   try {
-    const [rPacks, rSeances, rOnline, rEcritures, rFactures, rConfig] = await Promise.all([
+    const [rPacks, rSeances, rOnline, rEcritures, rFactures, rConfig, rKSwissClients, rKSwissMonth] = await Promise.all([
       sb.from('packs').select('*').order('nom'),
       sb.from('seances').select('*'),
       sb.from('online_clients').select('*').order('nom'),
       sb.from('ecritures').select('*').order('date_ecriture'),
       sb.from('factures').select('*').order('created_at'),
       sb.from('config').select('*'),
+      sb.from('config').select('*').eq('id','kswiss_clients'),
+      sb.from('config').select('*').eq('id','kswiss_month_data'),
     ]);
     // Si erreur Supabase, data est null — on garde les tableaux vides sans initData
     if (rPacks.error) { setSyncStatus('error'); console.error('Erreur packs:', rPacks.error.message); return; }
@@ -597,7 +628,10 @@ async function loadAll() {
     // Ne jamais réinitialiser automatiquement — les données sont dans Supabase
     setSyncStatus('ok');
     initialized = true;
-    renderAll();
+    // Init K-Swiss
+  if (rKSwissClients?.data?.[0]) kswissClients = rKSwissClients.data[0].valeur || [];
+  if (rKSwissMonth?.data?.[0]) kswissMonthData = rKSwissMonth.data[0].valeur || {};
+  renderAll();
   } catch(e) {
     setSyncStatus('error');
     console.error(e);
@@ -2008,9 +2042,102 @@ function renderCA() {
   }
 }
 
+function renderKSwiss() {
+  const mois = currentKSwissMonth;
+  const monthData = kswissMonthData[mois] || {};
+  const clients = kswissClients.filter(c => c.actif);
+  
+  // Métriques
+  const nbActifs = clients.length;
+  const caMensuel = clients.reduce((s, c) => s + (c.abo || 75), 0);
+  document.getElementById('nb-kswiss').textContent = nbActifs;
+  document.getElementById('ca-kswiss').textContent = fmt(caMensuel) + ' CHF';
+  
+  // Barre des mois
+  const monthBar = document.getElementById('kswiss-month-bar');
+  const moisDispo = Object.keys(kswissMonthData);
+  monthBar.innerHTML = moisDispo.map(m => 
+    `<button class="mtab${m === mois ? ' active' : ''}" onclick="currentKSwissMonth='${m}';renderKSwiss()">${m}</button>`
+  ).join('');
+
+  // Tableau
+  const tbody = document.getElementById('kswiss-tbody');
+  tbody.innerHTML = clients.map(c => {
+    const data = monthData[c.nom] || { abo: c.abo || 75, paye: false };
+    const checkins = data.checkins || [];
+    const uid = 'kci_' + c.nom.replace(/[^a-z0-9]/gi,'_') + '_' + mois;
+    return `<tr>
+      <td style="font-weight:500">${c.nom}</td>
+      <td>${fmt(data.abo || 75)} CHF</td>
+      <td>
+        ${data.paye 
+          ? `<span style="color:var(--success);font-weight:600">✓ Payé</span>` 
+          : `<span style="color:var(--warn);font-weight:600;cursor:pointer" onclick="marquerPayeKSwiss('${c.nom}','${mois}')">En attente</span>`}
+      </td>
+      <td style="position:relative">
+        <div style="position:relative;display:inline-block">
+          <button class="btn-sm" onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
+            style="font-size:11px;min-width:36px">📅 ${checkins.length}</button>
+          <div id="${uid}" style="display:none;position:absolute;z-index:100;right:0;top:28px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,0.15)">
+            <div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:6px">CHECK-INS</div>
+            ${checkins.length ? checkins.map((d,i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:12px">${d}</span>
+              <button onclick="supprimerCheckinKSwiss('${c.nom}','${mois}',${i})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 4px">✕</button>
+            </div>`).join('') : '<div style="font-size:11px;color:var(--text-3)">Aucun check-in</div>'}
+            <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
+              <input type="date" id="date_${uid}" style="font-size:11px;padding:3px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);flex:1">
+              <button class="btn-sm" onclick="ajouterCheckinKSwiss('${c.nom}','${mois}','${uid}')" style="font-size:11px">+ Ajouter</button>
+            </div>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--text-2)">${data.commentaire || ''}</td>
+      <td></td>
+    </tr>`;
+  }).join('');
+}
+
+async function marquerPayeKSwiss(nom, mois) {
+  const data = kswissMonthData[mois]?.[nom] || { abo: 75, paye: false };
+  const montant = data.abo || 75;
+  const { data: eData } = await sb.from('ecritures').insert([{
+    type: 'recette', libelle: `K-Swiss — ${nom} — ${mois}`, montant, 
+    date_ecriture: new Date().toISOString().split('T')[0], mois
+  }]).select();
+  if (!kswissMonthData[mois]) kswissMonthData[mois] = {};
+  kswissMonthData[mois][nom] = { ...data, paye: true, ecritureId: eData?.[0]?.id };
+  await sb.from('config').upsert([{ id: 'kswiss_month_data', valeur: kswissMonthData }]);
+  renderKSwiss();
+}
+
+async function ajouterCheckinKSwiss(nom, mois, uid) {
+  const input = document.getElementById('date_' + uid);
+  let dateVal = input.value;
+  if (!dateVal) { const t = new Date(); dateVal = t.toISOString().split('T')[0]; }
+  const d = new Date(dateVal);
+  const dateStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  if (!kswissMonthData[mois]) kswissMonthData[mois] = {};
+  const data = kswissMonthData[mois][nom] || { abo: 75, paye: false };
+  const checkins = data.checkins || [];
+  if (checkins.includes(dateStr)) return;
+  checkins.push(dateStr); checkins.sort();
+  kswissMonthData[mois][nom] = { ...data, checkins };
+  await sb.from('config').upsert([{ id: 'kswiss_month_data', valeur: kswissMonthData }]);
+  renderKSwiss();
+}
+
+async function supprimerCheckinKSwiss(nom, mois, index) {
+  const data = kswissMonthData[mois]?.[nom];
+  if (!data?.checkins) return;
+  data.checkins.splice(index, 1);
+  kswissMonthData[mois][nom] = { ...data };
+  await sb.from('config').upsert([{ id: 'kswiss_month_data', valeur: kswissMonthData }]);
+  renderKSwiss();
+}
+
 function switchTab(id) {
   document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['packs','seances','online','compta','ca','factures'][i] === id);
+    t.classList.toggle('active', ['packs','seances','online','compta','ca','factures','kswiss'][i] === id);
   });
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
@@ -2018,6 +2145,7 @@ function switchTab(id) {
   if (id === 'packs') renderPacks();
   if (id === 'online') { currentOnlineMonth = currentMonth; renderOnline(); }
   if (id === 'ca') renderCA();
+  if (id === 'kswiss') renderKSwiss();
 }
 
 function openModal(id) {
